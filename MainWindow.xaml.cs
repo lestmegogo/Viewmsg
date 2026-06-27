@@ -97,6 +97,8 @@ public partial class MainWindow : Window
     private void ClosePstView()
     {
         ColFolderTree.Width = new GridLength(0);
+        ColFolderTree.MinWidth = 0;
+        if (Splitter1 != null) Splitter1.Visibility = Visibility.Collapsed;
         PstFolderPanel.Visibility = Visibility.Collapsed;
         _currentPstFile?.Dispose();
         _currentPstFile = null;
@@ -312,8 +314,7 @@ public partial class MainWindow : Window
         TxtDate.Text = email.DateDisplay;
         TxtAvatar.Text = email.SenderInitials;
 
-        // Safety banner hiển thị mặc định
-        BdrSafetyBanner.Visibility = Visibility.Visible;
+        // Safety banner đã loại bỏ
 
         // Nạp đính kèm
         if (email.Attachments.Count > 0)
@@ -425,10 +426,7 @@ public partial class MainWindow : Window
     }
 
 
-    private void BtnSafetyBanner_Close(object sender, RoutedEventArgs e)
-    {
-        BdrSafetyBanner.Visibility = Visibility.Collapsed;
-    }
+    // Warning banner click handler removed
 
     private void BtnSummarize_Click(object sender, RoutedEventArgs e)
     {
@@ -705,6 +703,8 @@ public partial class MainWindow : Window
 
             // Cấu hình giao diện chế độ 3 cột
             ColFolderTree.Width = new GridLength(240);
+            ColFolderTree.MinWidth = 150;
+            Splitter1.Visibility = Visibility.Visible;
             PstFolderPanel.Visibility = Visibility.Visible;
 
             // Xây dựng cây thư mục đệ quy

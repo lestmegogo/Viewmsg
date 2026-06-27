@@ -219,9 +219,11 @@
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="ColFolderTree" Width="0" /> <!-- Width is 0 (collapsed) by default -->
-            <ColumnDefinition Width="360" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="ColFolderTree" Width="0" MinWidth="0" /> <!-- Width is 0 (collapsed) by default -->
+            <ColumnDefinition x:Name="ColSplitter1" Width="Auto" />
+            <ColumnDefinition x:Name="ColEmailList" Width="360" MinWidth="200" />
+            <ColumnDefinition x:Name="ColSplitter2" Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="400" />
         </Grid.ColumnDefinitions>
 
         <!-- NEW LEFT PANEL: Folder TreeView for PST/OST -->
@@ -252,8 +254,11 @@
             </Grid>
         </Border>
 
+        <!-- Splitter 1 (Folder Tree <-> Email List) -->
+        <GridSplitter x:Name="Splitter1" Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#e2e8f0" ShowsPreview="True" Visibility="Collapsed"/>
+
         <!-- MIDDLE PANEL: Email List Sidebar -->
-        <Border Grid.Column="1" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
+        <Border Grid.Column="2" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" /> <!-- Open Buttons -->
@@ -352,8 +357,11 @@
             </Grid>
         </Border>
 
+        <!-- Splitter 2 (Email List <-> Email Detail) -->
+        <GridSplitter x:Name="Splitter2" Grid.Column="3" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#e2e8f0" ShowsPreview="True"/>
+
         <!-- RIGHT PANEL: Email Detail Reader -->
-        <Grid Grid.Column="2" Background="#f8fafc">
+        <Grid Grid.Column="4" Background="#f8fafc">
             <!-- No Selection Placeholder -->
             <Grid x:Name="GridPlaceholder" Background="#f3f4f6" Panel.ZIndex="10" Visibility="Visible">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -367,7 +375,6 @@
             <Grid x:Name="GridDetail" Background="#ffffff">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" /> <!-- Header Metadata (Subject, From, To, CC, Date, Action buttons) -->
-                    <RowDefinition Height="Auto" /> <!-- Safety Banner -->
                     <RowDefinition Height="Auto" /> <!-- Attachments Chips -->
                     <RowDefinition Height="*" />    <!-- Content Body Tabs -->
                 </Grid.RowDefinitions>
@@ -424,25 +431,8 @@
                     </Grid>
                 </Border>
 
-                <!-- Warning Safety Banner -->
-                <Border x:Name="BdrSafetyBanner" Grid.Row="1" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="16,8" Visibility="Visible">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="ℹ️" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="Một số nội dung hình ảnh/liên kết ngoài trong thư đã bị ẩn vì người gửi không nằm trong danh sách người gửi an toàn." FontSize="11" Foreground="#475569" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="12,0,0,0">
-                            <Button Content="Tin cậy người gửi" Style="{StaticResource ActionButton}" Padding="8,4" FontSize="11" Click="BtnSafetyBanner_Close"/>
-                            <Button Content="Hiển thị nội dung bị chặn" Style="{StaticResource ActionButton}" Margin="6,0,0,0" Padding="8,4" FontSize="11" Click="BtnSafetyBanner_Close"/>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
                 <!-- Horizontal Attachments List (Chips) -->
-                <Border x:Name="CardAttachments" Grid.Row="2" Background="#f8fafc" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="20,10" Visibility="Collapsed">
+                <Border x:Name="CardAttachments" Grid.Row="1" Background="#f8fafc" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="20,10" Visibility="Collapsed">
                     <StackPanel>
                         <TextBlock Text="ĐÍNH KÈM" FontSize="10" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,6"/>
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -472,7 +462,7 @@
                 </Border>
 
                 <!-- Main Content Tabs -->
-                <TabControl Grid.Row="3" Background="#ffffff" BorderThickness="0" TabStripPlacement="Bottom">
+                <TabControl Grid.Row="2" Background="#ffffff" BorderThickness="0" TabStripPlacement="Bottom">
                     <!-- HTML Render Tab -->
                     <TabItem Header="Xem giao diện (HTML)">
                         <Grid>
@@ -512,7 +502,7 @@
                 </TabControl>
 
                 <!-- Summary Overlay Popup -->
-                <Border x:Name="BdrSummaryPopup" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="100" Background="#80000000" Visibility="Collapsed" MouseDown="BdrSummaryPopup_MouseDown">
+                <Border x:Name="BdrSummaryPopup" Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100" Background="#80000000" Visibility="Collapsed" MouseDown="BdrSummaryPopup_MouseDown">
                     <Border Background="#ffffff" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="8" Padding="24" Width="550" Height="450" HorizontalAlignment="Center" VerticalAlignment="Center" MouseDown="BdrSummaryPopup_InnerMouseDown">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -535,7 +525,7 @@
         </Grid>
 
         <!-- Status Bar -->
-        <StatusBar Grid.Row="1" Grid.ColumnSpan="3" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
+        <StatusBar Grid.Row="1" Grid.ColumnSpan="5" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
             <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Kéo thả file email/thư mục để xem." Foreground="#64748b" FontSize="11" />
         </StatusBar>
 
