@@ -300,13 +300,14 @@ public partial class MainWindow : Window
 
         if (string.IsNullOrWhiteSpace(email.Cc))
         {
-            PanelCc.Visibility = Visibility.Collapsed;
+            TxtCc.Visibility = Visibility.Collapsed;
         }
         else
         {
-            PanelCc.Visibility = Visibility.Visible;
-            TxtCc.Text = email.Cc;
+            TxtCc.Visibility = Visibility.Visible;
+            TxtCc.Text = "Cc: " + email.Cc;
         }
+
 
         TxtDate.Text = email.DateDisplay;
         TxtAvatar.Text = email.SenderInitials;
