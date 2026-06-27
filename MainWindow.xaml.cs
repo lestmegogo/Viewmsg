@@ -277,8 +277,10 @@ public partial class MainWindow : Window
         else
         {
             GridPlaceholder.Visibility = Visibility.Visible;
+            GridDetail.Visibility = Visibility.Collapsed;
         }
     }
+
 
     private void LoadEmailDetails(EmailMessage email)
     {
