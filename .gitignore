@@ -1,0 +1,12 @@
+# .gitignore for .NET WPF Project
+[Bb]in/
+[Oo]bj/
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore build logs
+*.log
