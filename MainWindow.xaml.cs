@@ -342,7 +342,23 @@ public partial class MainWindow : Window
             SuppressScriptErrors(EmailWebBrowser, true);
             if (!string.IsNullOrWhiteSpace(email.BodyHtml))
             {
-                EmailWebBrowser.NavigateToString(email.BodyHtml);
+                string html = email.BodyHtml;
+                string cssStyle = "<style>body { padding: 20px !important; }</style>";
+                if (html.Contains("<head>", StringComparison.OrdinalIgnoreCase))
+                {
+                    int headIndex = html.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
+                    html = html.Insert(headIndex + 6, cssStyle);
+                }
+                else if (html.Contains("<html>", StringComparison.OrdinalIgnoreCase))
+                {
+                    int htmlIndex = html.IndexOf("<html>", StringComparison.OrdinalIgnoreCase);
+                    html = html.Insert(htmlIndex + 6, "<head>" + cssStyle + "</head>");
+                }
+                else
+                {
+                    html = cssStyle + html;
+                }
+                EmailWebBrowser.NavigateToString(html);
             }
             else
             {
