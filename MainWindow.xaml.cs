@@ -8,8 +8,24 @@ using System.Windows.Input;
 using System.Collections.Generic;
 using MsgViewer.Models;
 using MsgViewer.Services;
+using XstReader;
+using XstReader.ElementProperties;
+
 
 namespace MsgViewer;
+
+/// <summary>
+/// View model class representing a node in the Outlook Folder TreeView
+/// </summary>
+public class PstFolderNode
+{
+    public string Name { get; set; } = "";
+    public string Icon { get; set; } = "📁";
+    public XstFolder Folder { get; set; } = null!;
+    public List<PstFolderNode> SubFolders { get; } = new();
+    public int UnreadCount { get; set; } = 0;
+    public string UnreadDisplay => UnreadCount > 0 ? $" ({UnreadCount})" : "";
+}
 
 /// <summary>
 /// Interaction logic for MainWindow.xaml
@@ -19,6 +35,8 @@ public partial class MainWindow : Window
     private List<EmailMessage> _allEmails = new();
     private bool IsFocusedTabSelected = true;
     private EmailMessage? _currentEmail;
+    private XstFile? _currentPstFile;
+    private string _currentSearchText = "";
 
     public MainWindow()
     {
@@ -63,11 +81,26 @@ public partial class MainWindow : Window
                          }
                     };
                 }
+                else if (ext == ".pst" || ext == ".ost")
+                {
+                    this.Loaded += (s, e) => {
+                        LoadPstFile(filePath);
+                    };
+                }
             }
         }
     }
 
 
+
+
+    private void ClosePstView()
+    {
+        ColFolderTree.Width = new GridLength(0);
+        PstFolderPanel.Visibility = Visibility.Collapsed;
+        _currentPstFile?.Dispose();
+        _currentPstFile = null;
+    }
 
     private void BtnOpenFile_Click(object sender, RoutedEventArgs e)
     {
@@ -80,6 +113,7 @@ public partial class MainWindow : Window
         {
             try
             {
+                ClosePstView();
                 var parsed = EmailParser.Parse(dialog.FileName);
                 if (!_allEmails.Any(em => em.FilePath == parsed.FilePath))
                 {
@@ -112,6 +146,7 @@ public partial class MainWindow : Window
             };
             if (dialog.ShowDialog() == true)
             {
+                ClosePstView();
                 LoadFolder(dialog.FolderName);
             }
         }
@@ -120,6 +155,7 @@ public partial class MainWindow : Window
             MessageBox.Show($"Không thể mở hộp thoại chọn thư mục: {ex.Message}. Vui lòng kéo thả thư mục vào ứng dụng.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
+
 
     private void FocusedTab_Checked(object sender, RoutedEventArgs e)
     {
@@ -137,8 +173,25 @@ public partial class MainWindow : Window
     {
         if (_allEmails == null || LstEmails == null || BdrEmptyList == null) return;
 
+        // Apply Search Filtering first
+        var keyword = _currentSearchText?.Trim();
+        var emailsToFilter = _allEmails.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            emailsToFilter = emailsToFilter.Where(e =>
+                e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                (e.BodyText != null && e.BodyText.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        var filteredList = emailsToFilter.ToList();
+
         // Split emails: no-reply / news go to Other, rest to Focused
-        var otherEmails = _allEmails.Where(e => 
+        var otherEmails = filteredList.Where(e => 
             string.IsNullOrWhiteSpace(e.FromName) || 
             e.FromEmail.Contains("no-reply", StringComparison.OrdinalIgnoreCase) || 
             e.FromEmail.Contains("newsletter", StringComparison.OrdinalIgnoreCase) ||
@@ -146,7 +199,7 @@ public partial class MainWindow : Window
             e.Subject.Contains("khuyến mại", StringComparison.OrdinalIgnoreCase)
         ).ToList();
 
-        var focusedEmails = _allEmails.Except(otherEmails).ToList();
+        var focusedEmails = filteredList.Except(otherEmails).ToList();
 
         if (IsFocusedTabSelected)
         {
@@ -159,6 +212,7 @@ public partial class MainWindow : Window
             BdrEmptyList.Visibility = otherEmails.Any() ? Visibility.Collapsed : Visibility.Visible;
         }
     }
+
 
     private void LoadFolder(string folderPath)
     {
@@ -232,6 +286,12 @@ public partial class MainWindow : Window
         GridPlaceholder.Visibility = Visibility.Collapsed;
         GridDetail.Visibility = Visibility.Visible;
 
+        // Nạp lazy body & attachments từ XstMessage nếu là thư trong PST
+        if (email.RawXstMessage != null)
+        {
+            PstParser.LoadMessageDetails(email);
+        }
+
         TxtSubject.Text = string.IsNullOrWhiteSpace(email.Subject) ? "(Không có tiêu đề)" : email.Subject;
         TxtFrom.Text = email.FromDisplay;
         TxtTo.Text = "To: " + (string.IsNullOrWhiteSpace(email.To) ? "-" : email.To);
@@ -249,10 +309,10 @@ public partial class MainWindow : Window
         TxtDate.Text = email.DateDisplay;
         TxtAvatar.Text = email.SenderInitials;
 
-        // Safety banner shown by default
+        // Safety banner hiển thị mặc định
         BdrSafetyBanner.Visibility = Visibility.Visible;
 
-        // Populate attachments
+        // Nạp đính kèm
         if (email.Attachments.Count > 0)
         {
             CardAttachments.Visibility = Visibility.Visible;
@@ -264,15 +324,15 @@ public partial class MainWindow : Window
             LstAttachments.ItemsSource = null;
         }
 
-        // Populate text view
+        // Nạp text thuần
         TxtBodyText.Text = string.IsNullOrWhiteSpace(email.BodyText) 
             ? "Không có nội dung văn bản thuần." 
             : email.BodyText;
 
-        // Populate raw headers
-        PopulateHeaders(email.FilePath);
+        // Nạp SMTP headers
+        PopulateHeaders(email);
 
-        // Load content to WebBrowser safely
+        // Hiển thị WebBrowser an toàn
         try
         {
             SuppressScriptErrors(EmailWebBrowser, true);
@@ -292,13 +352,28 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine($"WebBrowser navigation failed: {ex.Message}");
         }
 
-        TxtStatus.Text = $"Đang hiển thị: {Path.GetFileName(email.FilePath)}";
+        if (email.RawXstMessage != null)
+        {
+            TxtStatus.Text = $"Đang hiển thị thư trong PST: {email.Subject}";
+        }
+        else
+        {
+            TxtStatus.Text = $"Đang hiển thị: {Path.GetFileName(email.FilePath)}";
+        }
     }
 
-    private void PopulateHeaders(string filePath)
+    private void PopulateHeaders(EmailMessage email)
     {
         try
         {
+            if (email.RawXstMessage is XstMessage xstMsg)
+            {
+                var headersProp = xstMsg.Properties[PropertyCanonicalName.PidTagTransportMessageHeaders];
+                TxtHeaders.Text = headersProp?.Value?.ToString() ?? "Không tìm thấy thông tin Transport Message Headers trong thư PST này.";
+                return;
+            }
+
+            var filePath = email.FilePath;
             var ext = Path.GetExtension(filePath).ToLowerInvariant();
             if (ext == ".msg")
             {
@@ -345,6 +420,7 @@ public partial class MainWindow : Window
             TxtHeaders.Text = $"Lỗi khi đọc headers: {ex.Message}";
         }
     }
+
 
     private void BtnSafetyBanner_Close(object sender, RoutedEventArgs e)
     {
@@ -564,6 +640,10 @@ public partial class MainWindow : Window
                                 System.Diagnostics.Debug.WriteLine($"Error parsing drag-dropped file {path}: {ex.Message}");
                             }
                         }
+                        else if (ext == ".pst" || ext == ".ost")
+                        {
+                            LoadPstFile(path);
+                        }
                     }
                 }
 
@@ -591,5 +671,158 @@ public partial class MainWindow : Window
         {
             // Ignore reflection errors
         }
+    }
+
+    // ----- CÁC PHƯƠNG THỨC HỖ TRỢ ĐỌC FILE PST/OST & TÌM KIẾM -----
+
+    private void BtnOpenPst_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Outlook Data Files (*.pst, *.ost)|*.pst;*.ost|Personal Storage Table (*.pst)|*.pst|Offline Storage Table (*.ost)|*.ost|All files (*.*)|*.*",
+            Title = "Chọn tệp dữ liệu Outlook để mở"
+        };
+        if (dialog.ShowDialog() == true)
+        {
+            LoadPstFile(dialog.FileName);
+        }
+    }
+
+    private void LoadPstFile(string filePath)
+    {
+        try
+        {
+            TxtStatus.Text = $"Đang đọc tệp Outlook: {filePath}...";
+            
+            // Giải phóng file cũ nếu đang mở
+            ClosePstView();
+
+            // Mở file PST/OST mới
+            _currentPstFile = new XstFile(filePath);
+
+            // Cấu hình giao diện chế độ 3 cột
+            ColFolderTree.Width = new GridLength(240);
+            PstFolderPanel.Visibility = Visibility.Visible;
+
+            // Xây dựng cây thư mục đệ quy
+            var rootNodes = new List<PstFolderNode>();
+            var rootNode = CreateFolderNode(_currentPstFile.RootFolder);
+            rootNodes.Add(rootNode);
+            TreePstFolders.ItemsSource = rootNodes;
+
+            // Tự động mở rộng node gốc
+            if (TreePstFolders.ItemContainerGenerator.ContainerFromItem(rootNode) is TreeViewItem tvi)
+            {
+                tvi.IsExpanded = true;
+            }
+
+            TxtStatus.Text = $"Đã mở thành công tệp dữ liệu Outlook: {Path.GetFileName(filePath)}";
+            _allEmails.Clear();
+            UpdateEmailList();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi khi mở tệp PST: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            TxtStatus.Text = "Lỗi khi nạp tệp PST.";
+            ClosePstView();
+        }
+    }
+
+    private PstFolderNode CreateFolderNode(XstFolder folder)
+    {
+        var node = new PstFolderNode
+        {
+            Name = folder.DisplayName ?? "(Thư mục không tên)",
+            Folder = folder,
+            UnreadCount = folder.ContentUnreadCount
+        };
+
+        // Ánh xạ biểu tượng icon thư mục Outlook
+        var nameLower = (folder.DisplayName ?? "").ToLowerInvariant();
+        if (nameLower.Contains("inbox") || nameLower.Contains("hộp thư đến")) node.Icon = "📥";
+        else if (nameLower.Contains("sent") || nameLower.Contains("thư đã gửi")) node.Icon = "📤";
+        else if (nameLower.Contains("draft") || nameLower.Contains("thư nháp")) node.Icon = "📝";
+        else if (nameLower.Contains("delete") || nameLower.Contains("thùng rác") || nameLower.Contains("trash")) node.Icon = "🗑️";
+        else if (nameLower.Contains("junk") || nameLower.Contains("thư rác") || nameLower.Contains("spam")) node.Icon = "🚫";
+        else if (nameLower.Contains("archive") || nameLower.Contains("lưu trữ")) node.Icon = "📦";
+        else if (nameLower.Contains("calendar") || nameLower.Contains("lịch")) node.Icon = "📅";
+        else if (nameLower.Contains("contact") || nameLower.Contains("danh bạ")) node.Icon = "👥";
+        else node.Icon = "📁";
+
+        if (folder.Folders != null)
+        {
+            foreach (var sub in folder.Folders)
+            {
+                node.SubFolders.Add(CreateFolderNode(sub));
+            }
+        }
+        return node;
+    }
+
+    private void TreePstFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (e.NewValue is PstFolderNode node)
+        {
+            try
+            {
+                TxtStatus.Text = $"Đang đọc danh sách thư từ thư mục: {node.Name}...";
+                _allEmails.Clear();
+
+                var messages = node.Folder.Messages ?? node.Folder.GetMessages();
+                if (messages != null)
+                {
+                    foreach (var msg in messages)
+                    {
+                        // Map tóm tắt thư (để load danh sách cực nhanh không tốn RAM)
+                        _allEmails.Add(PstParser.MapMessageSummary(msg, _currentPstFile?.Path ?? ""));
+                    }
+                }
+
+                _allEmails = _allEmails.OrderByDescending(em => em.Date ?? DateTime.MinValue).ToList();
+                UpdateEmailList();
+                TxtStatus.Text = $"Đã tải {_allEmails.Count} email trong thư mục: {node.Name}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi tải email từ thư mục: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                TxtStatus.Text = "Lỗi khi nạp email.";
+            }
+        }
+    }
+
+    // Xử lý sự kiện Tìm kiếm thời gian thực
+    private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (TxtSearch == null || TxtSearchPlaceholder == null || BtnClearSearch == null) return;
+
+        _currentSearchText = TxtSearch.Text;
+        TxtSearchPlaceholder.Visibility = string.IsNullOrEmpty(_currentSearchText) ? Visibility.Visible : Visibility.Collapsed;
+        BtnClearSearch.Visibility = string.IsNullOrEmpty(_currentSearchText) ? Visibility.Collapsed : Visibility.Visible;
+        UpdateEmailList();
+    }
+
+    private void TxtSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        TxtSearchPlaceholder.Visibility = Visibility.Collapsed;
+    }
+
+    private void TxtSearch_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(TxtSearch.Text))
+        {
+            TxtSearchPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void BtnClearSearch_Click(object sender, RoutedEventArgs e)
+    {
+        TxtSearch.Text = "";
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        // Giải phóng file PST khi đóng ứng dụng
+        _currentPstFile?.Dispose();
+        base.OnClosed(e);
     }
 }

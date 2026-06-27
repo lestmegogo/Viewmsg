@@ -219,90 +219,141 @@
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="ColFolderTree" Width="0" /> <!-- Width is 0 (collapsed) by default -->
             <ColumnDefinition Width="360" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- LEFT PANEL: Email List Sidebar -->
-        <Border Grid.Column="0" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
+        <!-- NEW LEFT PANEL: Folder TreeView for PST/OST -->
+        <Border Grid.Column="0" x:Name="PstFolderPanel" Background="#f8fafc" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0" Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                
+                <!-- TreeView Header -->
+                <Border Grid.Row="0" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="14,0">
+                    <TextBlock Text="📁 Thư mục Outlook" FontWeight="Bold" FontSize="13" Foreground="#1e293b" VerticalAlignment="Center"/>
+                </Border>
+                
+                <!-- TreeView -->
+                <TreeView Grid.Row="1" x:Name="TreePstFolders" Background="Transparent" BorderThickness="0" Padding="4" SelectedItemChanged="TreePstFolders_SelectedItemChanged">
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
+                            <StackPanel Orientation="Horizontal" Margin="0,3">
+                                <TextBlock Text="{Binding Icon}" Margin="0,0,6,0" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#334155" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding UnreadDisplay}" FontSize="10" Foreground="#0078d4" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </Grid>
+        </Border>
+
+        <!-- MIDDLE PANEL: Email List Sidebar -->
+        <Border Grid.Column="1" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" /> <!-- Open Buttons -->
                     <RowDefinition Height="Auto" /> <!-- Focused/Other Tabs -->
+                    <RowDefinition Height="Auto" /> <!-- Search Box -->
                     <RowDefinition Height="*" />    <!-- Email List -->
                 </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Button Content="📁 Mở thư mục" Margin="8,8,4,8" Style="{StaticResource OutlineButton}" Click="BtnOpenFolder_Click" ToolTip="Quét thư mục chứa các file .msg, .eml"/>
-                    <Button Grid.Column="1" Content="✉️ Chọn tệp" Margin="4,8,8,8" Style="{StaticResource FillButton}" Click="BtnOpenFile_Click" ToolTip="Mở một tệp email cụ thể"/>
-                </Grid>
-            </Border>
+                <Border Grid.Row="0" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="📁 Thư mục" Margin="6,8,3,8" Style="{StaticResource OutlineButton}" Click="BtnOpenFolder_Click" ToolTip="Quét thư mục chứa các file .msg, .eml" FontSize="11" Padding="4,8"/>
+                        <Button Grid.Column="1" Content="✉️ Chọn tệp" Margin="3,8,3,8" Style="{StaticResource OutlineButton}" Click="BtnOpenFile_Click" ToolTip="Mở một tệp email cụ thể" FontSize="11" Padding="4,8"/>
+                        <Button Grid.Column="2" Content="📦 Mở PST" Margin="3,8,6,8" Style="{StaticResource FillButton}" Click="BtnOpenPst_Click" ToolTip="Mở tệp Outlook Data (.pst, .ost)" FontSize="11" Padding="4,8"/>
+                    </Grid>
+                </Border>
 
-            <Border Grid.Row="1" Height="38" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
-                <StackPanel Orientation="Horizontal" Margin="10,0">
-                    <RadioButton Content="Focused" IsChecked="True" Style="{StaticResource OutlookTabButton}" Checked="FocusedTab_Checked" />
-                    <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" />
-                </StackPanel>
-            </Border>
+                <Border Grid.Row="1" Height="38" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal" Margin="10,0">
+                        <RadioButton Content="Focused" IsChecked="True" Style="{StaticResource OutlookTabButton}" Checked="FocusedTab_Checked" />
+                        <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" />
+                    </StackPanel>
+                </Border>
 
-            <!-- Email ListBox -->
-            <Grid Grid.Row="2">
-                <ListBox x:Name="LstEmails" 
-                         Background="#ffffff" 
-                         BorderThickness="0" 
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         SelectionChanged="LstEmails_SelectionChanged">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                <!-- Search Box Panel -->
+                <Border Grid.Row="2" Height="44" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
+                    <Grid>
+                        <Border Background="#f3f4f6" BorderThickness="1" BorderBrush="#e5e7eb" CornerRadius="4">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-
-                                <!-- Sender Name -->
-                                <TextBlock Grid.Column="0" Text="{Binding FromDisplay}" FontWeight="Bold" Foreground="#1f2937" FontSize="13" TextTrimming="CharacterEllipsis"/>
-
-                                <!-- Date/Time -->
-                                <TextBlock Grid.Column="1" Text="{Binding DateDisplay}" Foreground="#94a3b8" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"/>
-
-                                <!-- Subject -->
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Subject}" FontWeight="SemiBold" Foreground="#0078d4" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
-
-                                <!-- Attachment Icon (paperclip) -->
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="📎" Foreground="#94a3b8" FontSize="12" Margin="8,4,0,0" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-
-                                <!-- Snippet/Preview -->
-                                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Snippet}" Foreground="#64748b" FontSize="11" Margin="0,4,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="🔍" Grid.Column="0" Foreground="#94a3b8" FontSize="11" Margin="8,0,4,0" VerticalAlignment="Center" />
+                                <TextBox x:Name="TxtSearch" Grid.Column="1" Background="Transparent" BorderThickness="0" Padding="2,4" VerticalAlignment="Center" FontSize="12" Foreground="#334155" TextChanged="TxtSearch_TextChanged" GotFocus="TxtSearch_GotFocus" LostFocus="TxtSearch_LostFocus" CaretBrush="#0078d4"/>
+                                <TextBlock x:Name="TxtSearchPlaceholder" Grid.Column="1" Text="Tìm kiếm email..." Foreground="#94a3b8" FontSize="12" IsHitTestVisible="False" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                <Button x:Name="BtnClearSearch" Grid.Column="2" Content="✕" Foreground="#94a3b8" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed" Click="BtnClearSearch_Click" Width="18" Height="18" Padding="0" FontSize="10"/>
                             </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
-                <!-- Empty List Placeholder -->
-                <Border x:Name="BdrEmptyList" Background="#ffffff" Visibility="Visible" Padding="20">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <TextBlock Text="📥" FontSize="40" Foreground="#cbd5e1" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Text="Chưa nạp email nào" FontSize="13" FontWeight="SemiBold" Foreground="#64748b" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Nhấn chọn thư mục hoặc thả các tệp tin email vào đây." TextWrapping="Wrap" Foreground="#94a3b8" FontSize="11" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="260"/>
-                    </StackPanel>
+                        </Border>
+                    </Grid>
                 </Border>
-            </Grid>
+
+                <!-- Email ListBox -->
+                <Grid Grid.Row="3">
+                    <ListBox x:Name="LstEmails" 
+                             Background="#ffffff" 
+                             BorderThickness="0" 
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             SelectionChanged="LstEmails_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,2">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Sender Name -->
+                                    <TextBlock Grid.Column="0" Text="{Binding FromDisplay}" FontWeight="Bold" Foreground="#1f2937" FontSize="13" TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Date/Time -->
+                                    <TextBlock Grid.Column="1" Text="{Binding DateDisplay}" Foreground="#94a3b8" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"/>
+
+                                    <!-- Subject -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Subject}" FontWeight="SemiBold" Foreground="#0078d4" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Attachment Icon (paperclip) -->
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="📎" Foreground="#94a3b8" FontSize="12" Margin="8,4,0,0" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                    <!-- Snippet/Preview -->
+                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Snippet}" Foreground="#64748b" FontSize="11" Margin="0,4,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Empty List Placeholder -->
+                    <Border x:Name="BdrEmptyList" Background="#ffffff" Visibility="Visible" Padding="20">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="📥" FontSize="40" Foreground="#cbd5e1" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock Text="Chưa nạp email nào" FontSize="13" FontWeight="SemiBold" Foreground="#64748b" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Chọn tệp/thư mục hoặc thả các tệp tin email vào đây." TextWrapping="Wrap" Foreground="#94a3b8" FontSize="11" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="260"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
 
         <!-- RIGHT PANEL: Email Detail Reader -->
-        <Grid Grid.Column="1" Background="#f8fafc">
+        <Grid Grid.Column="2" Background="#f8fafc">
             <!-- No Selection Placeholder -->
             <Grid x:Name="GridPlaceholder" Background="#f3f4f6" Panel.ZIndex="10" Visibility="Visible">
                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -486,8 +537,9 @@
         </Grid>
 
         <!-- Status Bar -->
-        <StatusBar Grid.Row="1" Grid.ColumnSpan="2" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
+        <StatusBar Grid.Row="1" Grid.ColumnSpan="3" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
             <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Kéo thả file email/thư mục để xem." Foreground="#64748b" FontSize="11" />
         </StatusBar>
+
     </Grid>
 </Window>

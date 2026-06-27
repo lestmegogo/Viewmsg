@@ -44,6 +44,9 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [Registry]
 Root: HKA; Subkey: "Software\Classes\.msg"; ValueType: string; ValueName: ""; ValueData: "MsgViewer.AssocFile"; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\.eml"; ValueType: string; ValueName: ""; ValueData: "MsgViewer.AssocFile"; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.pst"; ValueType: string; ValueName: ""; ValueData: "MsgViewer.AssocFile"; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.ost"; ValueType: string; ValueName: ""; ValueData: "MsgViewer.AssocFile"; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\MsgViewer.AssocFile"; ValueType: string; ValueName: ""; ValueData: "Email Message File"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\MsgViewer.AssocFile\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\MsgViewer.exe,0"
 Root: HKA; Subkey: "Software\Classes\MsgViewer.AssocFile\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\MsgViewer.exe"" ""%1"""
+

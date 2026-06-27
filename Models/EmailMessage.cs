@@ -62,7 +62,11 @@ public class EmailMessage
             return name.Substring(0, Math.Min(2, name.Length)).ToUpper();
         }
     }
+
+    /// <summary>Đối tượng XstMessage gốc (chỉ dùng cho tệp PST/OST để nạp lazy).</summary>
+    public object? RawXstMessage { get; set; }
 }
+
 
 public class EmailAttachment
 {
