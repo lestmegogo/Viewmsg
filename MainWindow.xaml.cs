@@ -623,7 +623,15 @@ public partial class MainWindow : Window
             UpdateO365UIState();
             if (IsWebSessionActive())
             {
-                await ShowOutlookWebAsync();
+                var args = Environment.GetCommandLineArgs();
+                bool hasLocalFileArg = false;
+                if (args.Length > 1 && File.Exists(args[1]))
+                {
+                    var ext = Path.GetExtension(args[1]).ToLowerInvariant();
+                    if (ext == ".msg" || ext == ".eml") hasLocalFileArg = true;
+                }
+
+                await ShowOutlookWebAsync(selectTab: !hasLocalFileArg);
             }
         }
         catch (Exception ex)
@@ -725,7 +733,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task ShowOutlookWebAsync()
+    private async Task ShowOutlookWebAsync(bool selectTab = true)
     {
         try
         {
@@ -749,7 +757,10 @@ public partial class MainWindow : Window
             if (RadOutlookWeb != null)
             {
                 RadOutlookWeb.Visibility = Visibility.Visible;
-                RadOutlookWeb.IsChecked = true;
+                if (selectTab)
+                {
+                    RadOutlookWeb.IsChecked = true;
+                }
             }
 
             StartOwaEmailGrabber();
