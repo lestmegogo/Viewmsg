@@ -14,7 +14,7 @@ namespace MsgViewer.Services
 {
     public class Office365Service
     {
-        private static readonly string ClientId = "da2c38cb-4e9b-449e-9d29-a1b7eb6d953d"; // Microsoft Graph WPF Client ID template
+        private static string ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"; // Microsoft Office Global Client ID
         private static readonly string[] Scopes = { "User.Read", "Mail.ReadWrite", "Mail.Send" };
 
         private static IPublicClientApplication? _pca;
@@ -29,6 +29,33 @@ namespace MsgViewer.Services
 
         public static async Task InitializeAsync()
         {
+            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "o365_config.txt");
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    string fileContent = File.ReadAllText(configPath);
+                    var lines = fileContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (lines.Length > 0)
+                    {
+                        var guidStr = lines[0].Trim();
+                        if (Guid.TryParse(guidStr, out _))
+                        {
+                            ClientId = guidStr;
+                        }
+                    }
+                }
+                catch {}
+            }
+            else
+            {
+                try
+                {
+                    File.WriteAllText(configPath, ClientId + "\r\n# Thay thế dòng 1 bằng Client ID (Application ID) của bạn nếu muốn sử dụng App Registration riêng trên Azure Active Directory.");
+                }
+                catch {}
+            }
+
             _pca = PublicClientApplicationBuilder.Create(ClientId)
                 .WithAuthority(AadAuthorityAudience.AzureAdMultipleOrgs)
                 .WithRedirectUri("http://localhost")
