@@ -639,19 +639,25 @@ public partial class MainWindow : Window
             GridO365SignedOut.Visibility = Visibility.Collapsed;
             GridO365SignedIn.Visibility = Visibility.Visible;
 
-            string email = GetSavedWebSessionEmail();
-            if (email != "active")
+            string rawSession = GetSavedWebSessionEmail();
+            string email = "active";
+            string name = "Outlook Web";
+
+            if (rawSession.Contains("|"))
             {
-                TxtO365Name.Text = email;
-                TxtO365Email.Text = "Đã đăng nhập";
-                TxtO365Avatar.Text = email.Substring(0, 1).ToUpper();
+                var parts = rawSession.Split('|');
+                email = parts[0];
+                name = parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1]) ? parts[1] : parts[0].Split('@')[0];
             }
-            else
+            else if (rawSession.Contains("@"))
             {
-                TxtO365Name.Text = "Outlook Web";
-                TxtO365Email.Text = "Đã đăng nhập";
-                TxtO365Avatar.Text = "O";
+                email = rawSession;
+                name = rawSession.Split('@')[0];
             }
+
+            TxtO365Name.Text = name;
+            TxtO365Email.Text = email;
+            TxtO365Avatar.Text = (!string.IsNullOrEmpty(name) ? name.Substring(0, 1) : "U").ToUpper();
         }
         else
         {
@@ -823,40 +829,57 @@ public partial class MainWindow : Window
 
         try
         {
-            // 1. Try to get email from cookies first (fast and highly reliable)
+            // 1. Try to get email from cookies first
             string? cookieEmail = await GetEmailFromCookiesAsync();
             if (!string.IsNullOrEmpty(cookieEmail))
             {
-                SaveWebSessionActive(true, cookieEmail);
+                string defaultName = cookieEmail.Split('@')[0];
+                SaveWebSessionActive(true, $"{cookieEmail}|{defaultName}");
                 UpdateO365UIState();
-                return;
             }
 
-            // 2. Fallback to JavaScript DOM grabbing
+            // 2. Query name and email via JavaScript
             string js = @"
 (function() {
     try {
-        if (window.sessionContext && window.sessionContext.UserEmailAddress) {
-            return window.sessionContext.UserEmailAddress;
+        let email = null;
+        let name = null;
+        
+        if (window.sessionContext) {
+            email = window.sessionContext.UserEmailAddress;
+            name = window.sessionContext.UserName;
         }
-        if (window.Owa && window.Owa.Configuration && window.Owa.Configuration.UserEmailAddress) {
-            return window.Owa.Configuration.UserEmailAddress;
+        if (!email && window.Owa && window.Owa.Configuration) {
+            email = window.Owa.Configuration.UserEmailAddress;
+            name = window.Owa.Configuration.UserName;
         }
-        if (window.g_PersonaLayouts && window.g_PersonaLayouts.userEmail) {
-            return window.g_PersonaLayouts.userEmail;
+        if (!email && window.OwaConfiguration) {
+            email = window.OwaConfiguration.UserEmailAddress;
+            name = window.OwaConfiguration.UserName;
         }
-        const elems = document.querySelectorAll('[title], [aria-label]');
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-        for (let i = 0; i < elems.length; i++) {
-            const el = elems[i];
-            const title = el.getAttribute('title') || '';
-            const ariaLabel = el.getAttribute('aria-label') || '';
-            
-            let match = title.match(emailRegex);
-            if (match) return match[0];
-            
-            match = ariaLabel.match(emailRegex);
-            if (match) return match[0];
+        
+        if (!email) {
+            const elems = document.querySelectorAll('[title], [aria-label]');
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+            for (let i = 0; i < elems.length; i++) {
+                const el = elems[i];
+                const title = el.getAttribute('title') || '';
+                const ariaLabel = el.getAttribute('aria-label') || '';
+                let match = title.match(emailRegex);
+                if (match) { email = match[0]; break; }
+                match = ariaLabel.match(emailRegex);
+                if (match) { email = match[0]; break; }
+            }
+        }
+        
+        if (!name) {
+            name = document.querySelector('.mectrl_currentAccount_primary')?.innerText || 
+                   document.querySelector('#mectrl_currentAccount_primary')?.innerText || 
+                   document.querySelector('.O365_MeArea_DisplayName')?.innerText;
+        }
+        
+        if (email) {
+            return email + '|' + (name || '');
         }
     } catch(e) {}
     return null;
@@ -864,10 +887,15 @@ public partial class MainWindow : Window
             string resultJson = await OutlookWebView.CoreWebView2.ExecuteScriptAsync(js);
             if (!string.IsNullOrEmpty(resultJson) && resultJson != "null")
             {
-                string email = resultJson.Trim('\"');
-                if (email.Contains("@") && email.Length > 5)
+                string rawResult = resultJson.Trim('\"');
+                if (rawResult.Contains("|") && rawResult.Length > 5)
                 {
-                    SaveWebSessionActive(true, email);
+                    if (rawResult.StartsWith("puid:", StringComparison.OrdinalIgnoreCase) || 
+                        rawResult.Contains("puid", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+                    SaveWebSessionActive(true, rawResult);
                     UpdateO365UIState();
                 }
             }
@@ -891,6 +919,11 @@ public partial class MainWindow : Window
                     string val = Uri.UnescapeDataString(cookie.Value);
                     if (val.Contains("@") && val.Length > 5)
                     {
+                        if (val.StartsWith("puid:", StringComparison.OrdinalIgnoreCase) || 
+                            val.Contains("puid", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
                         return val;
                     }
                 }
