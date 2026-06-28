@@ -3181,22 +3181,74 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(target)) return false;
         if (string.IsNullOrEmpty(keyword)) return false;
 
-        // Normalize both strings to Form C to ensure compatibility between different keyboard drivers (Form C vs Form D)
+        // Normalize both to Form C
         string normTarget = target.Normalize(System.Text.NormalizationForm.FormC);
         string normKeyword = keyword.Normalize(System.Text.NormalizationForm.FormC);
-        
-        // 1. Strict match first (case-insensitive)
-        if (normTarget.Contains(normKeyword, StringComparison.OrdinalIgnoreCase)) return true;
-        
-        // 2. Unaccented match if the keyword itself is unaccented
-        string normalizedKeyword = RemoveDiacritics(normKeyword);
-        if (normalizedKeyword == normKeyword) // Keyword is unaccented
+
+        var keywordTerms = normKeyword.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (keywordTerms.Length == 0) return false;
+
+        var targetWords = SplitIntoWords(normTarget);
+
+        foreach (var term in keywordTerms)
         {
-            string normalizedTarget = RemoveDiacritics(normTarget);
-            return normalizedTarget.Contains(normKeyword, StringComparison.OrdinalIgnoreCase);
+            bool termMatched = false;
+            string cleanTerm = RemoveDiacritics(term);
+            bool isTermAccented = (cleanTerm != term);
+
+            foreach (var word in targetWords)
+            {
+                if (isTermAccented)
+                {
+                    if (word.StartsWith(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        termMatched = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    string cleanWord = RemoveDiacritics(word);
+                    if (cleanWord.StartsWith(term, StringComparison.OrdinalIgnoreCase))
+                    {
+                        termMatched = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!termMatched) return false;
         }
-        
-        return false;
+
+        return true;
+    }
+
+    private static List<string> SplitIntoWords(string text)
+    {
+        var words = new List<string>();
+        if (string.IsNullOrEmpty(text)) return words;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in text)
+        {
+            if (char.IsLetterOrDigit(c))
+            {
+                sb.Append(c);
+            }
+            else
+            {
+                if (sb.Length > 0)
+                {
+                    words.Add(sb.ToString());
+                    sb.Clear();
+                }
+            }
+        }
+        if (sb.Length > 0)
+        {
+            words.Add(sb.ToString());
+        }
+        return words;
     }
 
     private static string RemoveDiacritics(string text)
@@ -3338,34 +3390,82 @@ public static class TextBlockHelper
             string normText = text.Normalize(System.Text.NormalizationForm.FormC);
             string normKeyword = keyword.Normalize(System.Text.NormalizationForm.FormC);
 
-            string cleanText = RemoveDiacritics(normText).ToLowerInvariant();
-            string cleanKeyword = RemoveDiacritics(normKeyword).ToLowerInvariant();
+            var terms = normKeyword.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                   .Select(t => RemoveDiacritics(t).ToLowerInvariant())
+                                   .Where(t => !string.IsNullOrEmpty(t))
+                                   .ToList();
 
-            int lastIndex = 0;
-            int index = cleanText.IndexOf(cleanKeyword, StringComparison.Ordinal);
-
-            while (index != -1)
+            if (terms.Count == 0)
             {
-                if (index > lastIndex)
-                {
-                    textBlock.Inlines.Add(new System.Windows.Documents.Run(text.Substring(lastIndex, index - lastIndex)));
-                }
-
-                string matchingSubstring = text.Substring(index, cleanKeyword.Length);
-                var highlightRun = new System.Windows.Documents.Run(matchingSubstring)
-                {
-                    Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#ffeb3b")),
-                    FontWeight = FontWeights.Bold
-                };
-                textBlock.Inlines.Add(highlightRun);
-
-                lastIndex = index + cleanKeyword.Length;
-                index = cleanText.IndexOf(cleanKeyword, lastIndex, StringComparison.Ordinal);
+                textBlock.Inlines.Add(new System.Windows.Documents.Run(text));
+                return;
             }
 
-            if (lastIndex < text.Length)
+            int index = 0;
+            while (index < text.Length)
             {
-                textBlock.Inlines.Add(new System.Windows.Documents.Run(text.Substring(lastIndex)));
+                // Add non-word characters
+                while (index < text.Length && !char.IsLetterOrDigit(text[index]))
+                {
+                    textBlock.Inlines.Add(new System.Windows.Documents.Run(text[index].ToString()));
+                    index++;
+                }
+
+                if (index >= text.Length) break;
+
+                // Extract word
+                int wordStart = index;
+                while (index < text.Length && char.IsLetterOrDigit(text[index]))
+                {
+                    index++;
+                }
+                string word = text.Substring(wordStart, index - wordStart);
+                string cleanWord = RemoveDiacritics(word).ToLowerInvariant();
+
+                string? matchedTerm = null;
+                foreach (var term in terms)
+                {
+                    if (cleanWord.StartsWith(term))
+                    {
+                        matchedTerm = term;
+                        break;
+                    }
+                }
+
+                if (matchedTerm != null && word.Length >= matchedTerm.Length)
+                {
+                    int highlightLength = matchedTerm.Length;
+                    int originalHighlightLength = 0;
+                    for (int len = 1; len <= word.Length; len++)
+                    {
+                        string sub = word.Substring(0, len);
+                        if (RemoveDiacritics(sub).ToLowerInvariant().Length >= highlightLength)
+                        {
+                            originalHighlightLength = len;
+                            break;
+                        }
+                    }
+                    if (originalHighlightLength == 0) originalHighlightLength = highlightLength;
+
+                    string prefix = word.Substring(0, originalHighlightLength);
+                    string suffix = word.Substring(originalHighlightLength);
+
+                    var highlightRun = new System.Windows.Documents.Run(prefix)
+                    {
+                        Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#ffeb3b")),
+                        FontWeight = FontWeights.Bold
+                    };
+                    textBlock.Inlines.Add(highlightRun);
+
+                    if (!string.IsNullOrEmpty(suffix))
+                    {
+                        textBlock.Inlines.Add(new System.Windows.Documents.Run(suffix));
+                    }
+                }
+                else
+                {
+                    textBlock.Inlines.Add(new System.Windows.Documents.Run(word));
+                }
             }
         }
     }
