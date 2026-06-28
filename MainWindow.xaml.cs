@@ -226,6 +226,22 @@ public partial class MainWindow : Window
                         var startOfLastMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
                         var startOfThisMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
                         return date >= startOfLastMonth && date < startOfThisMonth;
+                    case 6: // Custom range
+                        var start = DpStartDate?.SelectedDate;
+                        var end = DpEndDate?.SelectedDate;
+                        if (start.HasValue && end.HasValue)
+                        {
+                            return date >= start.Value.Date && date <= end.Value.Date;
+                        }
+                        else if (start.HasValue)
+                        {
+                            return date >= start.Value.Date;
+                        }
+                        else if (end.HasValue)
+                        {
+                            return date <= end.Value.Date;
+                        }
+                        return true;
                     default:
                         return true;
                 }
@@ -895,6 +911,8 @@ public partial class MainWindow : Window
             if (CboSearchScope != null) CboSearchScope.SelectedIndex = 0;
             if (CboDateFilter != null) CboDateFilter.SelectedIndex = 0;
             if (ChkHasAttachments != null) ChkHasAttachments.IsChecked = false;
+            if (DpStartDate != null) DpStartDate.SelectedDate = null;
+            if (DpEndDate != null) DpEndDate.SelectedDate = null;
             UpdateEmailList();
         }
     }
@@ -905,6 +923,29 @@ public partial class MainWindow : Window
     }
 
     private void FilterOption_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateEmailList();
+    }
+
+    private void CboDateFilter_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CboDateFilter == null || GridCustomDateRange == null) return;
+
+        if (CboDateFilter.SelectedIndex == 6) // "Tự chọn ngày..."
+        {
+            GridCustomDateRange.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            GridCustomDateRange.Visibility = Visibility.Collapsed;
+            if (DpStartDate != null) DpStartDate.SelectedDate = null;
+            if (DpEndDate != null) DpEndDate.SelectedDate = null;
+        }
+
+        UpdateEmailList();
+    }
+
+    private void DatePicker_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateEmailList();
     }

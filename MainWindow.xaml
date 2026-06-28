@@ -353,6 +353,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -373,18 +374,40 @@
                             <!-- Date Filter ComboBox -->
                             <StackPanel Grid.Column="1" Margin="4,0,0,0">
                                 <TextBlock Text="Thời gian" FontSize="10" Foreground="#64748b" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                <ComboBox x:Name="CboDateFilter" SelectedIndex="0" FontSize="11" Height="24" SelectionChanged="FilterOption_SelectionChanged">
+                                <ComboBox x:Name="CboDateFilter" SelectedIndex="0" FontSize="11" Height="24" SelectionChanged="CboDateFilter_SelectionChanged">
                                     <ComboBoxItem Content="Tất cả thời gian" />
                                     <ComboBoxItem Content="Hôm nay" />
                                     <ComboBoxItem Content="Hôm qua" />
                                     <ComboBoxItem Content="Tuần này" />
                                     <ComboBoxItem Content="Tháng này" />
                                     <ComboBoxItem Content="Tháng trước" />
+                                    <ComboBoxItem Content="Tự chọn ngày..." />
                                 </ComboBox>
                             </StackPanel>
 
+                            <!-- Custom Date Range Row (Collapsible) -->
+                            <Grid Grid.Row="1" Grid.ColumnSpan="2" x:Name="GridCustomDateRange" Visibility="Collapsed" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Margin="0,0,4,0">
+                                    <TextBlock Text="Từ ngày" FontSize="10" Foreground="#64748b" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DpStartDate" SelectedDateChanged="DatePicker_SelectedDateChanged" FontSize="11" Height="24"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Column="1" Text="đến" VerticalAlignment="Bottom" Margin="4,0,4,4" Foreground="#64748b" FontSize="11"/>
+
+                                <StackPanel Grid.Column="2" Margin="4,0,0,0">
+                                    <TextBlock Text="Đến ngày" FontSize="10" Foreground="#64748b" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <DatePicker x:Name="DpEndDate" SelectedDateChanged="DatePicker_SelectedDateChanged" FontSize="11" Height="24"/>
+                                </StackPanel>
+                            </Grid>
+
                             <!-- CheckBox for Attachments -->
-                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" x:Name="ChkHasAttachments" Content="Chỉ hiện email có tệp đính kèm 📎" FontSize="11" Margin="0,8,0,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
+                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2" x:Name="ChkHasAttachments" Content="Chỉ hiện email có tệp đính kèm 📎" FontSize="11" Margin="0,10,0,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
                         </Grid>
                     </StackPanel>
                 </Border>
