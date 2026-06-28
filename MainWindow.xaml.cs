@@ -129,6 +129,7 @@ public partial class MainWindow : Window
                     this.Loaded += (s, e) => {
                         try
                          {
+                             SwitchToLocalViewer();
                              var parsed = EmailParser.Parse(filePath);
                              if (!_allEmails.Any(em => em.FilePath == parsed.FilePath))
                              {
