@@ -71,7 +71,7 @@ public class PstFolderNode : System.ComponentModel.INotifyPropertyChanged
 public partial class MainWindow : Window
 {
     private List<EmailMessage> _allEmails = new();
-    private bool IsFocusedTabSelected = true;
+    private bool _showUnreadOnlyTab = false;
     private EmailMessage? _currentEmail;
     private Dictionary<string, XstFile> _activePstFiles = new();
     private PstFolderNode? _o365AccountNode;
@@ -1743,15 +1743,10 @@ public partial class MainWindow : Window
     }
 
 
-    private void FocusedTab_Checked(object sender, RoutedEventArgs e)
+    private void FilterTab_Checked(object sender, RoutedEventArgs e)
     {
-        IsFocusedTabSelected = true;
-        UpdateEmailList();
-    }
-
-    private void OtherTab_Checked(object sender, RoutedEventArgs e)
-    {
-        IsFocusedTabSelected = false;
+        if (RadFilterUnread == null) return;
+        _showUnreadOnlyTab = RadFilterUnread.IsChecked == true;
         UpdateEmailList();
     }
 
@@ -1895,29 +1890,15 @@ public partial class MainWindow : Window
             emailsToFilter = emailsToFilter.OrderByDescending(e => e.Date ?? DateTime.MinValue);
         }
 
+        // Apply Unread Tab filter
+        if (_showUnreadOnlyTab)
+        {
+            emailsToFilter = emailsToFilter.Where(e => !e.IsRead);
+        }
+
         var filteredList = emailsToFilter.ToList();
-
-        // Split emails: no-reply / news go to Other, rest to Focused
-        var otherEmails = filteredList.Where(e => 
-            string.IsNullOrWhiteSpace(e.FromName) || 
-            e.FromEmail.Contains("no-reply", StringComparison.OrdinalIgnoreCase) || 
-            e.FromEmail.Contains("newsletter", StringComparison.OrdinalIgnoreCase) ||
-            e.Subject.Contains("chúc mừng", StringComparison.OrdinalIgnoreCase) ||
-            e.Subject.Contains("khuyến mại", StringComparison.OrdinalIgnoreCase)
-        ).ToList();
-
-        var focusedEmails = filteredList.Except(otherEmails).ToList();
-
-        if (IsFocusedTabSelected)
-        {
-            LstEmails.ItemsSource = focusedEmails;
-            BdrEmptyList.Visibility = focusedEmails.Any() ? Visibility.Collapsed : Visibility.Visible;
-        }
-        else
-        {
-            LstEmails.ItemsSource = otherEmails;
-            BdrEmptyList.Visibility = otherEmails.Any() ? Visibility.Collapsed : Visibility.Visible;
-        }
+        LstEmails.ItemsSource = filteredList;
+        BdrEmptyList.Visibility = filteredList.Any() ? Visibility.Collapsed : Visibility.Visible;
 
         var view = System.Windows.Data.CollectionViewSource.GetDefaultView(LstEmails.ItemsSource);
         if (view != null)
