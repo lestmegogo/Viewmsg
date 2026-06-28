@@ -877,6 +877,18 @@ public partial class MainWindow : Window
                    document.querySelector('#mectrl_currentAccount_primary')?.innerText || 
                    document.querySelector('.O365_MeArea_DisplayName')?.innerText;
         }
+
+        if (!name) {
+            const meButtons = document.querySelectorAll('[aria-label*=""tài khoản""], [aria-label*=""Account manager""], [aria-label*=""manager for""], [aria-label*=""account for""]');
+            for (let i = 0; i < meButtons.length; i++) {
+                const label = meButtons[i].getAttribute('aria-label') || '';
+                const match = label.match(/(?:Account manager for|Trình quản lý tài khoản của|Thông tin tài khoản của|Account info for|Manager account for)\s+(.+)/i);
+                if (match && match[1]) {
+                    name = match[1].trim();
+                    break;
+                }
+            }
+        }
         
         if (email) {
             return email + '|' + (name || '');
