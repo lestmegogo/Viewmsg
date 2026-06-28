@@ -1765,25 +1765,51 @@ public partial class MainWindow : Window
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            int scopeIndex = CboSearchScope?.SelectedIndex ?? 0;
-            emailsToFilter = emailsToFilter.Where(e => {
-                switch (scopeIndex)
-                {
-                    case 1: // Subject only
-                        return IsMatch(e.Subject, keyword);
-                    case 2: // Sender only
-                        return IsMatch(e.FromName, keyword) || IsMatch(e.FromEmail, keyword);
-                    case 3: // Recipient only
-                        return IsMatch(e.To, keyword);
-                    case 0: // All fields
-                    default:
-                        return IsMatch(e.Subject, keyword) ||
-                               IsMatch(e.FromName, keyword) ||
-                               IsMatch(e.FromEmail, keyword) ||
-                               IsMatch(e.To, keyword) ||
-                               IsMatch(e.BodyText, keyword);
-                }
-            });
+            ParseOutlookSearchQuery(keyword, out string? filterSubject, out string? filterFrom, out string? filterTo, out bool? filterHasAttachment, out bool? filterIsUnread, out string? generalKeyword);
+
+            if (filterFrom != null)
+            {
+                emailsToFilter = emailsToFilter.Where(e => IsMatch(e.FromName, filterFrom) || IsMatch(e.FromEmail, filterFrom));
+            }
+            if (filterSubject != null)
+            {
+                emailsToFilter = emailsToFilter.Where(e => IsMatch(e.Subject, filterSubject));
+            }
+            if (filterTo != null)
+            {
+                emailsToFilter = emailsToFilter.Where(e => IsMatch(e.To, filterTo));
+            }
+            if (filterHasAttachment.HasValue)
+            {
+                emailsToFilter = emailsToFilter.Where(e => e.HasAttachments == filterHasAttachment.Value);
+            }
+            if (filterIsUnread.HasValue)
+            {
+                emailsToFilter = emailsToFilter.Where(e => !e.IsRead == filterIsUnread.Value);
+            }
+
+            if (generalKeyword != null)
+            {
+                int scopeIndex = CboSearchScope?.SelectedIndex ?? 0;
+                emailsToFilter = emailsToFilter.Where(e => {
+                    switch (scopeIndex)
+                    {
+                        case 1: // Subject only
+                            return IsMatch(e.Subject, generalKeyword);
+                        case 2: // Sender only
+                            return IsMatch(e.FromName, generalKeyword) || IsMatch(e.FromEmail, generalKeyword);
+                        case 3: // Recipient only
+                            return IsMatch(e.To, generalKeyword);
+                        case 0: // All fields
+                        default:
+                            return IsMatch(e.Subject, generalKeyword) ||
+                                   IsMatch(e.FromName, generalKeyword) ||
+                                   IsMatch(e.FromEmail, generalKeyword) ||
+                                   IsMatch(e.To, generalKeyword) ||
+                                   IsMatch(e.BodyText, generalKeyword);
+                    }
+                });
+            }
         }
 
         // Apply Date Filtering
@@ -3197,6 +3223,71 @@ public partial class MainWindow : Window
         }
 
         return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    private static void ParseOutlookSearchQuery(string query, out string? subject, out string? from, out string? to, out bool? hasAttachment, out bool? isUnread, out string? generalKeyword)
+    {
+        subject = null;
+        from = null;
+        to = null;
+        hasAttachment = null;
+        isUnread = null;
+        generalKeyword = null;
+
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        // Split query by spaces, but respect quotes for phrases
+        var terms = System.Text.RegularExpressions.Regex.Matches(query, @"(?<match>\w+:""[^""]+""|\w+:[^\s]+|""[^""]+""|[^\s]+)");
+        var generalList = new List<string>();
+
+        foreach (System.Text.RegularExpressions.Match termMatch in terms)
+        {
+            string term = termMatch.Value;
+            if (term.Contains(":"))
+            {
+                int colonIndex = term.IndexOf(':');
+                string key = term.Substring(0, colonIndex).ToLowerInvariant();
+                string val = term.Substring(colonIndex + 1).Trim('"', '\'');
+
+                switch (key)
+                {
+                    case "from":
+                        from = val;
+                        break;
+                    case "subject":
+                        subject = val;
+                        break;
+                    case "to":
+                        to = val;
+                        break;
+                    case "has":
+                    case "hasattachment":
+                        if (val.Equals("attachment", StringComparison.OrdinalIgnoreCase) || val.Equals("yes", StringComparison.OrdinalIgnoreCase) || val.Equals("true", StringComparison.OrdinalIgnoreCase))
+                            hasAttachment = true;
+                        else if (val.Equals("no", StringComparison.OrdinalIgnoreCase) || val.Equals("false", StringComparison.OrdinalIgnoreCase))
+                            hasAttachment = false;
+                        break;
+                    case "is":
+                        if (val.Equals("unread", StringComparison.OrdinalIgnoreCase))
+                            isUnread = true;
+                        else if (val.Equals("read", StringComparison.OrdinalIgnoreCase))
+                            isUnread = false;
+                        break;
+                    default:
+                        generalList.Add(term);
+                        break;
+                }
+            }
+            else
+            {
+                generalList.Add(term.Trim('"', '\''));
+            }
+        }
+
+        if (generalList.Count > 0)
+        {
+            generalKeyword = string.Join(" ", generalList);
+        }
     }
 
     protected override void OnClosed(EventArgs e)
