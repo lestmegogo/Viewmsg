@@ -293,13 +293,56 @@
         <Border Grid.Column="2" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- Office 365 Panel -->
                     <RowDefinition Height="Auto" /> <!-- Open Buttons -->
                     <RowDefinition Height="Auto" /> <!-- Focused/Other Tabs -->
                     <RowDefinition Height="Auto" /> <!-- Search Box -->
                     <RowDefinition Height="*" />    <!-- Email List -->
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
+                <!-- Office 365 Status Panel -->
+                <Border Grid.Row="0" Background="#f8fafc" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8">
+                    <Grid>
+                        <!-- When Signed Out -->
+                        <Grid x:Name="GridO365SignedOut" Visibility="Visible">
+                            <Button Content="🔑 Đăng nhập Office 365" Background="#e05e26" Foreground="White" BorderThickness="0" Cursor="Hand" Padding="10,6" FontWeight="SemiBold" FontSize="11" Click="BtnO365SignIn_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border CornerRadius="4" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
+                        <!-- When Signed In -->
+                        <Grid x:Name="GridO365SignedIn" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- User Avatar / Initials -->
+                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" Background="#e05e26" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock x:Name="TxtO365Avatar" Text="U" Foreground="White" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtO365Name" Text="User Name" FontWeight="SemiBold" FontSize="11" Foreground="#1e293b" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="TxtO365Email" Text="email@office365.com" FontSize="9" Foreground="#64748b" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="📝 Soạn" Style="{StaticResource OutlineToggleButton}" Padding="6,4" FontSize="10" Margin="0,0,4,0" Click="BtnO365Compose_Click"/>
+                                <Button Content="🚪" Style="{StaticResource OutlineToggleButton}" Padding="6,4" FontSize="10" Click="BtnO365SignOut_Click" ToolTip="Đăng xuất"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -312,7 +355,7 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Row="1" Height="38" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
+                <Border Grid.Row="2" Height="38" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
                     <StackPanel Orientation="Horizontal" Margin="10,0">
                         <RadioButton Content="Focused" IsChecked="True" Style="{StaticResource OutlookTabButton}" Checked="FocusedTab_Checked" />
                         <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" />
@@ -320,7 +363,7 @@
                 </Border>
 
                 <!-- Search Box Panel -->
-                <Border Grid.Row="2" Height="Auto" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
+                <Border Grid.Row="3" Height="Auto" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
                     <StackPanel>
                         <!-- Main Search Row -->
                         <Grid>
@@ -413,7 +456,7 @@
                 </Border>
 
                 <!-- Email ListBox -->
-                <Grid Grid.Row="3">
+                <Grid Grid.Row="4">
                     <ListBox x:Name="LstEmails" 
                              Background="#ffffff" 
                              BorderThickness="0" 

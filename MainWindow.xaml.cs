@@ -21,7 +21,9 @@ public class PstFolderNode
 {
     public string Name { get; set; } = "";
     public string Icon { get; set; } = "📁";
-    public XstFolder Folder { get; set; } = null!;
+    public XstFolder? Folder { get; set; } = null;
+    public string Id { get; set; } = "";
+    public bool IsOffice365 { get; set; } = false;
     public List<PstFolderNode> SubFolders { get; } = new();
     public int UnreadCount { get; set; } = 0;
     public string UnreadDisplay => UnreadCount > 0 ? $" ({UnreadCount})" : "";
@@ -41,6 +43,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeWebView();
+        InitializeOffice365();
         UpdateEmailList();
 
         // Handle double-clicked email files from Windows Explorer
@@ -102,6 +106,154 @@ public partial class MainWindow : Window
         PstFolderPanel.Visibility = Visibility.Collapsed;
         _currentPstFile?.Dispose();
         _currentPstFile = null;
+    }
+
+    private async void InitializeWebView()
+    {
+        try
+        {
+            await EmailWebView.EnsureCoreWebView2Async(null);
+        }
+        catch (Exception)
+        {
+            MessageBoxResult result = MessageBox.Show(
+                "Không thể khởi chạy trình duyệt Edge Chromium (WebView2). Có thể máy tính của bạn chưa được cài đặt WebView2 Runtime.\n\nBạn có muốn tải xuống và cài đặt WebView2 Runtime từ trang chủ của Microsoft ngay bây giờ không?",
+                "Yêu cầu thành phần hệ thống",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception openEx)
+                {
+                    MessageBox.Show($"Không thể mở trình duyệt để tải xuống: {openEx.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+    private async void InitializeOffice365()
+    {
+        try
+        {
+            await Office365Service.InitializeAsync();
+            UpdateO365UIState();
+            if (Office365Service.IsSignedIn)
+            {
+                await LoadO365FoldersAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"O365 silent init failed: {ex.Message}");
+        }
+    }
+
+    private void UpdateO365UIState()
+    {
+        if (Office365Service.IsSignedIn)
+        {
+            GridO365SignedOut.Visibility = Visibility.Collapsed;
+            GridO365SignedIn.Visibility = Visibility.Visible;
+            TxtO365Name.Text = Office365Service.UserDisplayName ?? "User";
+            TxtO365Email.Text = Office365Service.UserEmail ?? "";
+            
+            if (!string.IsNullOrWhiteSpace(Office365Service.UserDisplayName))
+            {
+                var parts = Office365Service.UserDisplayName.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                TxtO365Avatar.Text = parts.Length >= 2 
+                    ? (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper()
+                    : Office365Service.UserDisplayName.Substring(0, Math.Min(2, Office365Service.UserDisplayName.Length)).ToUpper();
+            }
+            else
+            {
+                TxtO365Avatar.Text = "U";
+            }
+        }
+        else
+        {
+            GridO365SignedOut.Visibility = Visibility.Visible;
+            GridO365SignedIn.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async Task LoadO365FoldersAsync()
+    {
+        try
+        {
+            var folders = await Office365Service.GetFoldersAsync();
+            
+            // Show FolderTree column and splitter
+            ColFolderTree.Width = new GridLength(240);
+            ColFolderTree.MinWidth = 150;
+            if (Splitter1 != null) Splitter1.Visibility = Visibility.Visible;
+            PstFolderPanel.Visibility = Visibility.Visible;
+            
+            // Clear TreeView and add Office 365 folders
+            TreePstFolders.ItemsSource = null;
+            
+            var rootNodes = folders.Select(f => new PstFolderNode
+            {
+                Name = f.Item2,
+                Id = f.Item1,
+                IsOffice365 = true,
+                Icon = f.Item2.Contains("Inbox") ? "📥" : 
+                       f.Item2.Contains("Sent") ? "📤" : 
+                       f.Item2.Contains("Drafts") ? "📝" : 
+                       f.Item2.Contains("Trash") ? "🗑️" : "📁"
+            }).ToList();
+            
+            TreePstFolders.ItemsSource = rootNodes;
+            TxtStatus.Text = "Đã đồng bộ danh mục thư Office 365.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Lỗi tải thư mục Office 365: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void BtnO365SignIn_Click(object sender, RoutedEventArgs e)
+    {
+        TxtStatus.Text = "Đang đăng nhập Office 365...";
+        bool success = await Office365Service.SignInAsync();
+        if (success)
+        {
+            UpdateO365UIState();
+            await LoadO365FoldersAsync();
+            TxtStatus.Text = "Đăng nhập thành công!";
+        }
+        else
+        {
+            TxtStatus.Text = "Đăng nhập thất bại hoặc bị hủy.";
+            MessageBox.Show("Đăng nhập Office 365 thất bại. Vui lòng kiểm tra lại kết nối và tài khoản.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async void BtnO365SignOut_Click(object sender, RoutedEventArgs e)
+    {
+        if (MessageBox.Show("Bạn có muốn đăng xuất tài khoản Office 365 không?", "Đăng xuất", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+        {
+            await Office365Service.SignOutAsync();
+            UpdateO365UIState();
+            ClosePstView();
+            _allEmails.Clear();
+            UpdateEmailList();
+            TxtStatus.Text = "Đã đăng xuất tài khoản.";
+        }
+    }
+
+    private void BtnO365Compose_Click(object sender, RoutedEventArgs e)
+    {
+        var composeWin = new ComposeWindow { Owner = this };
+        composeWin.ShowDialog();
     }
 
     private void BtnOpenFile_Click(object sender, RoutedEventArgs e)
@@ -358,6 +510,11 @@ public partial class MainWindow : Window
         if (email.RawXstMessage != null)
         {
             PstParser.LoadMessageDetails(email);
+        }
+        else if (email.FilePath.StartsWith("o365://"))
+        {
+            TxtStatus.Text = "Đang tải chi tiết thư từ Office 365...";
+            await Office365Service.LoadEmailFullDetailsAsync(email);
         }
 
         TxtSubject.Text = string.IsNullOrWhiteSpace(email.Subject) ? "(Không có tiêu đề)" : email.Subject;
@@ -835,7 +992,7 @@ public partial class MainWindow : Window
         return node;
     }
 
-    private void TreePstFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    private async void TreePstFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         if (e.NewValue is PstFolderNode node)
         {
@@ -844,13 +1001,21 @@ public partial class MainWindow : Window
                 TxtStatus.Text = $"Đang đọc danh sách thư từ thư mục: {node.Name}...";
                 _allEmails.Clear();
 
-                var messages = node.Folder.Messages ?? node.Folder.GetMessages();
-                if (messages != null)
+                if (node.IsOffice365)
                 {
-                    foreach (var msg in messages)
+                    var o365Emails = await Office365Service.GetEmailsAsync(node.Id);
+                    _allEmails.AddRange(o365Emails);
+                }
+                else if (node.Folder != null)
+                {
+                    var messages = node.Folder.Messages ?? node.Folder.GetMessages();
+                    if (messages != null)
                     {
-                        // Map tóm tắt thư (để load danh sách cực nhanh không tốn RAM)
-                        _allEmails.Add(PstParser.MapMessageSummary(msg, _currentPstFile?.Path ?? ""));
+                        foreach (var msg in messages)
+                        {
+                            // Map tóm tắt thư (để load danh sách cực nhanh không tốn RAM)
+                            _allEmails.Add(PstParser.MapMessageSummary(msg, _currentPstFile?.Path ?? ""));
+                        }
                     }
                 }
 
