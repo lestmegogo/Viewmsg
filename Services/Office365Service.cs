@@ -8,6 +8,7 @@ using Microsoft.Identity.Client;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Azure.Identity;
+using Microsoft.Identity.Client.Desktop;
 using MsgViewer.Models;
 
 namespace MsgViewer.Services
@@ -24,6 +25,7 @@ namespace MsgViewer.Services
         public static string? UserDisplayName { get; private set; }
         public static string? UserEmail { get; private set; }
         public static byte[]? UserAvatar { get; private set; }
+        public static string? LastErrorMessage { get; private set; }
 
         public static bool IsSignedIn => _currentUserAccount != null;
 
@@ -67,7 +69,8 @@ namespace MsgViewer.Services
 
             _pca = PublicClientApplicationBuilder.Create(ClientId)
                 .WithAuthority(AadAuthorityAudience.AzureAdMultipleOrgs)
-                .WithRedirectUri("http://localhost")
+                .WithRedirectUri("https://login.microsoftonline.com/common/oauth2/nativeclient")
+                .WithWindowsEmbeddedBrowserSupport()
                 .Build();
 
             BindTokenCache(_pca.UserTokenCache);
@@ -91,13 +94,22 @@ namespace MsgViewer.Services
             }
         }
 
-        public static async Task<bool> SignInAsync()
+        public static async Task<bool> SignInAsync(IntPtr? parentWindowHandle = null)
         {
+            LastErrorMessage = null;
             if (_pca == null) await InitializeAsync();
 
             try
             {
-                var result = await _pca!.AcquireTokenInteractive(Scopes).ExecuteAsync();
+                var builder = _pca!.AcquireTokenInteractive(Scopes)
+                    .WithUseEmbeddedWebView(true);
+
+                if (parentWindowHandle.HasValue && parentWindowHandle.Value != IntPtr.Zero)
+                {
+                    builder = builder.WithParentActivityOrWindow(parentWindowHandle.Value);
+                }
+
+                var result = await builder.ExecuteAsync();
                 _currentUserAccount = result.Account;
                 InitializeGraphClient(result.AccessToken);
                 await LoadUserProfileAsync();
@@ -105,6 +117,7 @@ namespace MsgViewer.Services
             }
             catch (Exception ex)
             {
+                LastErrorMessage = ex.Message;
                 System.Diagnostics.Debug.WriteLine($"Sign-in failed: {ex.Message}");
                 return false;
             }
@@ -182,9 +195,9 @@ namespace MsgViewer.Services
             }
         }
 
-        public static async Task<List<Tuple<string, string>>> GetFoldersAsync()
+        public static async Task<List<Tuple<string, string, int>>> GetFoldersAsync()
         {
-            var foldersList = new List<Tuple<string, string>>();
+            var foldersList = new List<Tuple<string, string, int>>();
             if (_graphClient == null) return foldersList;
 
             try
@@ -202,7 +215,8 @@ namespace MsgViewer.Services
                         else if (displayName.Equals("Deleted Items", StringComparison.OrdinalIgnoreCase)) displayName = "🗑️ Thư đã xóa (Trash)";
                         else if (displayName.Equals("Junk Email", StringComparison.OrdinalIgnoreCase)) displayName = "🚫 Thư rác (Junk)";
 
-                        foldersList.Add(new Tuple<string, string>(folder.Id!, displayName));
+                        int unreadCount = folder.UnreadItemCount ?? 0;
+                        foldersList.Add(new Tuple<string, string, int>(folder.Id!, displayName, unreadCount));
                     }
                 }
             }
@@ -223,7 +237,7 @@ namespace MsgViewer.Services
             {
                 var messages = await _graphClient.Me.MailFolders[folderId].Messages.GetAsync(config =>
                 {
-                    config.QueryParameters.Select = new[] { "id", "subject", "from", "toRecipients", "ccRecipients", "receivedDateTime", "hasAttachments", "body", "bodyPreview" };
+                    config.QueryParameters.Select = new[] { "id", "subject", "from", "toRecipients", "ccRecipients", "receivedDateTime", "hasAttachments", "body", "bodyPreview", "isRead" };
                     config.QueryParameters.Top = 50; // Fetch latest 50 messages
                 });
 
@@ -238,7 +252,8 @@ namespace MsgViewer.Services
                             FromName = msg.From?.EmailAddress?.Name ?? "",
                             FromEmail = msg.From?.EmailAddress?.Address ?? "",
                             Date = msg.ReceivedDateTime?.DateTime.ToLocalTime(),
-                            BodyText = msg.BodyPreview ?? ""
+                            BodyText = msg.BodyPreview ?? "",
+                            IsRead = msg.IsRead ?? true
                         };
 
                         if (msg.ToRecipients != null && msg.ToRecipients.Any())
@@ -383,6 +398,162 @@ namespace MsgViewer.Services
             }
         }
 
+        public static async Task MarkAsReadAsync(string messageId, bool isRead)
+        {
+            if (_graphClient == null) return;
+            try
+            {
+                var updateMessage = new Microsoft.Graph.Models.Message
+                {
+                    IsRead = isRead
+                };
+                await _graphClient.Me.Messages[messageId].PatchAsync(updateMessage);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to mark as read: {ex.Message}");
+                throw;
+            }
+        }
+
+        public static async Task<bool> CreateFolderAsync(string parentFolderId, string folderName)
+        {
+            if (_graphClient == null) return false;
+            try
+            {
+                var newFolder = new Microsoft.Graph.Models.MailFolder
+                {
+                    DisplayName = folderName
+                };
+                await _graphClient.Me.MailFolders[parentFolderId].ChildFolders.PostAsync(newFolder);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create folder: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static async Task<bool> RenameFolderAsync(string folderId, string newName)
+        {
+            if (_graphClient == null) return false;
+            try
+            {
+                var updatedFolder = new Microsoft.Graph.Models.MailFolder
+                {
+                    DisplayName = newName
+                };
+                await _graphClient.Me.MailFolders[folderId].PatchAsync(updatedFolder);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to rename folder: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static async Task<bool> DeleteFolderAsync(string folderId)
+        {
+            if (_graphClient == null) return false;
+            try
+            {
+                await _graphClient.Me.MailFolders[folderId].DeleteAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to delete folder: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static async Task<bool> MarkAllAsReadAsync(string folderId)
+        {
+            if (_graphClient == null) return false;
+            try
+            {
+                var unreadMessages = await _graphClient.Me.MailFolders[folderId].Messages.GetAsync(config =>
+                {
+                    config.QueryParameters.Filter = "isRead eq false";
+                    config.QueryParameters.Select = new[] { "id" };
+                    config.QueryParameters.Top = 100;
+                });
+
+                if (unreadMessages?.Value != null)
+                {
+                    foreach (var msg in unreadMessages.Value)
+                    {
+                        if (msg.Id != null)
+                        {
+                            await MarkAsReadAsync(msg.Id, true);
+                        }
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to mark all as read: {ex.Message}");
+                return false;
+            }
+        }
+
+        public static async Task DeleteEmailAsync(string messageId)
+        {
+            if (_graphClient == null) return;
+            try
+            {
+                var requestBody = new Microsoft.Graph.Me.Messages.Item.Move.MovePostRequestBody
+                {
+                    DestinationId = "deleteditems"
+                };
+                await _graphClient.Me.Messages[messageId].Move.PostAsync(requestBody);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to delete email: {ex.Message}");
+                throw;
+            }
+        }
+
+        public static async Task ArchiveEmailAsync(string messageId)
+        {
+            if (_graphClient == null) return;
+            try
+            {
+                var requestBody = new Microsoft.Graph.Me.Messages.Item.Move.MovePostRequestBody
+                {
+                    DestinationId = "archive"
+                };
+                await _graphClient.Me.Messages[messageId].Move.PostAsync(requestBody);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to archive email: {ex.Message}");
+                throw;
+            }
+        }
+
+        public static async Task MoveToJunkAsync(string messageId)
+        {
+            if (_graphClient == null) return;
+            try
+            {
+                var requestBody = new Microsoft.Graph.Me.Messages.Item.Move.MovePostRequestBody
+                {
+                    DestinationId = "junkemail"
+                };
+                await _graphClient.Me.Messages[messageId].Move.PostAsync(requestBody);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to move to junk: {ex.Message}");
+                throw;
+            }
+        }
+
         private static readonly string CacheFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MsgViewer",
@@ -434,6 +605,161 @@ namespace MsgViewer.Services
                     }
                 }
             });
+        }
+
+        public static async Task<string?> CreateOrUpdateDraftAsync(
+            string? draftId,
+            string to,
+            string cc,
+            string subject,
+            string htmlBody)
+        {
+            if (_graphClient == null) return null;
+
+            try
+            {
+                var message = new Microsoft.Graph.Models.Message
+                {
+                    Subject = subject,
+                    Body = new Microsoft.Graph.Models.ItemBody
+                    {
+                        ContentType = Microsoft.Graph.Models.BodyType.Html,
+                        Content = htmlBody
+                    }
+                };
+
+                if (!string.IsNullOrWhiteSpace(to))
+                {
+                    message.ToRecipients = to.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(email => new Microsoft.Graph.Models.Recipient
+                        {
+                            EmailAddress = new Microsoft.Graph.Models.EmailAddress { Address = email.Trim() }
+                        }).ToList();
+                }
+
+                if (!string.IsNullOrWhiteSpace(cc))
+                {
+                    message.CcRecipients = cc.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(email => new Microsoft.Graph.Models.Recipient
+                        {
+                            EmailAddress = new Microsoft.Graph.Models.EmailAddress { Address = email.Trim() }
+                        }).ToList();
+                }
+
+                if (string.IsNullOrEmpty(draftId))
+                {
+                    // Create new draft
+                    var created = await _graphClient.Me.Messages.PostAsync(message);
+                    return created?.Id;
+                }
+                else
+                {
+                    // Update existing draft
+                    await _graphClient.Me.Messages[draftId].PatchAsync(message);
+                    return draftId;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to auto-save draft: {ex.Message}");
+                return null;
+            }
+        }
+
+        public static async Task<string?> CreateMailFolderAsync(string displayName, string? parentFolderId)
+        {
+            if (_graphClient == null) return null;
+
+            var folder = new Microsoft.Graph.Models.MailFolder { DisplayName = displayName };
+            
+            if (string.IsNullOrEmpty(parentFolderId))
+            {
+                var result = await _graphClient.Me.MailFolders.PostAsync(folder);
+                return result?.Id;
+            }
+            else
+            {
+                var result = await _graphClient.Me.MailFolders[parentFolderId].ChildFolders.PostAsync(folder);
+                return result?.Id;
+            }
+        }
+
+        public static async Task UploadImportedEmailAsync(string? folderId, string to, string subject, string bodyHtml, DateTime? receivedDateTime)
+        {
+            if (_graphClient == null) return;
+
+            var message = new Microsoft.Graph.Models.Message
+            {
+                Subject = subject,
+                Body = new Microsoft.Graph.Models.ItemBody
+                {
+                    ContentType = Microsoft.Graph.Models.BodyType.Html,
+                    Content = bodyHtml
+                },
+                ToRecipients = new List<Microsoft.Graph.Models.Recipient>()
+            };
+
+            if (!string.IsNullOrEmpty(to))
+            {
+                foreach (var email in to.Split(';'))
+                {
+                    var clean = email.Trim();
+                    if (!string.IsNullOrEmpty(clean))
+                    {
+                        message.ToRecipients.Add(new Microsoft.Graph.Models.Recipient
+                        {
+                            EmailAddress = new Microsoft.Graph.Models.EmailAddress { Address = clean }
+                        });
+                    }
+                }
+            }
+
+            if (receivedDateTime.HasValue)
+            {
+                message.ReceivedDateTime = receivedDateTime.Value;
+            }
+
+            if (string.IsNullOrEmpty(folderId))
+            {
+                await _graphClient.Me.Messages.PostAsync(message);
+            }
+            else
+            {
+                await _graphClient.Me.MailFolders[folderId].Messages.PostAsync(message);
+            }
+        }
+
+        public static async Task<List<(string Name, string Email)>> GetContactsAsync()
+        {
+            var contactsList = new List<(string Name, string Email)>();
+            if (_graphClient == null) return contactsList;
+
+            try
+            {
+                var contacts = await _graphClient.Me.Contacts.GetAsync(config =>
+                {
+                    config.QueryParameters.Select = new[] { "displayName", "emailAddresses" };
+                    config.QueryParameters.Top = 100;
+                });
+
+                if (contacts?.Value != null)
+                {
+                    foreach (var c in contacts.Value)
+                    {
+                        var email = c.EmailAddresses?.FirstOrDefault()?.Address;
+                        if (!string.IsNullOrWhiteSpace(email))
+                        {
+                            contactsList.Add((c.DisplayName ?? "", email));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get contacts: {ex.Message}");
+            }
+
+            return contactsList;
         }
     }
 

@@ -20,6 +20,7 @@ public static class PstParser
             FilePath = pstFilePath + "||" + (msg.Path ?? Guid.NewGuid().ToString()),
             Subject = string.IsNullOrWhiteSpace(msg.Subject) ? "(Không có tiêu đề)" : msg.Subject,
             Date = msg.Date ?? msg.ReceivedTime ?? msg.SubmittedTime,
+            IsRead = msg.IsRead,
         };
 
         email.FromName = msg.From ?? "";

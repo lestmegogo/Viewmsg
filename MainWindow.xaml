@@ -97,6 +97,31 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Modern Rounded Brand Button for New Mail -->
+        <Style TargetType="Button" x:Key="NewMailButton">
+            <Setter Property="Background" Value="#0078d4" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="16" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#106ebe" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Outline Toggle Button Style -->
         <Style TargetType="ToggleButton" x:Key="OutlineToggleButton">
             <Setter Property="Background" Value="Transparent" />
@@ -246,46 +271,231 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" /> <!-- Ribbon Bar -->
+            <RowDefinition Height="*" />    <!-- Main Content -->
+            <RowDefinition Height="Auto" /> <!-- Status Bar -->
         </Grid.RowDefinitions>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="ColFolderTree" Width="0" MinWidth="0" /> <!-- Width is 0 (collapsed) by default -->
-            <ColumnDefinition x:Name="ColSplitter1" Width="Auto" />
-            <ColumnDefinition x:Name="ColEmailList" Width="360" MinWidth="200" />
-            <ColumnDefinition x:Name="ColSplitter2" Width="Auto" />
-            <ColumnDefinition Width="*" MinWidth="400" />
-        </Grid.ColumnDefinitions>
+        <!-- TOP TOOLBAR -->
+        <Border x:Name="TopRibbonBar" Grid.Row="0" Background="#ffffff" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="0">
+            <Grid Height="42">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: File menu with all integrated options -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                    <Button Content="📁 File ∨" FontSize="12" FontWeight="SemiBold" Foreground="#323130" Background="Transparent" BorderThickness="0" Margin="0,0,12,0" VerticalAlignment="Center" Cursor="Hand" Click="BtnFileMenu_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="MnuFileOptions">
+                                <MenuItem Header="✉️ Mở tệp email (.msg, .eml)..." Click="MnuFileOpenMsgEml_Click" />
+                                <MenuItem Header="📁 Mở thư mục chứa email..." Click="BtnOpenFolder_Click" />
+                                <MenuItem Header="📦 Mở tệp tin Outlook Data (.pst, .ost)..." Click="BtnOpenPst_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+
+                <!-- Center: Tab Selector -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Stretch">
+                    <RadioButton x:Name="RadOutlookWeb" Content="🌐 Outlook Web" Style="{StaticResource OutlookTabButton}" GroupName="MainModes" Height="42" IsChecked="True" Checked="RadOutlookWeb_Checked" Visibility="Collapsed"/>
+                    <RadioButton x:Name="RadLocalViewer" Content="📂 Local Viewer" Style="{StaticResource OutlookTabButton}" GroupName="MainModes" Height="42" IsChecked="True" Checked="RadLocalViewer_Checked"/>
+                </StackPanel>
+
+                <!-- Right: Office 365 sign-in/out -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Grid x:Name="GridO365SignedOut" Visibility="Visible">
+                        <Button Content="🔑 Đăng nhập Office 365" Background="#0078d4" Foreground="White" BorderThickness="0" Cursor="Hand" Padding="12,6" FontWeight="SemiBold" FontSize="11" Click="BtnO365SignIn_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border CornerRadius="4" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                    <Grid x:Name="GridO365SignedIn" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" Background="#0078d4" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="TxtO365Avatar" Text="U" Foreground="White" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                            <TextBlock x:Name="TxtO365Name" Text="User" FontWeight="SemiBold" FontSize="11" Foreground="#1e293b" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                            <TextBlock x:Name="TxtO365Email" Text="" FontSize="9" Foreground="#64748b" TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="🚪 Đăng xuất" Style="{StaticResource ActionButton}" Padding="8,4" FontSize="11" Click="BtnO365SignOut_Click" ToolTip="Đăng xuất Office 365"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+
+
+        <!-- MAIN LAYOUT GRID -->
+        <Grid x:Name="MainLayoutGrid" Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ColFolderTree" Width="0" MinWidth="0" /> <!-- Width is 0 (collapsed) by default -->
+                <ColumnDefinition x:Name="ColSplitter1" Width="Auto" />
+                <ColumnDefinition x:Name="ColEmailList" Width="360" MinWidth="200" />
+                <ColumnDefinition x:Name="ColSplitter2" Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="400" />
+            </Grid.ColumnDefinitions>
 
         <!-- NEW LEFT PANEL: Folder TreeView for PST/OST -->
-        <Border Grid.Column="0" x:Name="PstFolderPanel" Background="#f8fafc" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0" Visibility="Collapsed">
+        <Border Grid.Column="0" x:Name="PstFolderPanel" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" /> <!-- Header -->
+                    <RowDefinition Height="Auto" /> <!-- New Mail Button -->
+                    <RowDefinition Height="*" /> <!-- TreeView -->
                 </Grid.RowDefinitions>
                 
                 <!-- TreeView Header -->
-                <Border Grid.Row="0" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="14,0">
-                    <TextBlock Text="📁 Thư mục Outlook" FontWeight="Bold" FontSize="13" Foreground="#1e293b" VerticalAlignment="Center"/>
+                <Border Grid.Row="0" Height="42" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="14,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="M 1,4 L 5,8 L 1,12" Stroke="#323130" StrokeThickness="1.5" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="📁 Folders" FontWeight="Bold" FontSize="12.5" Foreground="#323130" VerticalAlignment="Center"/>
+                    </StackPanel>
                 </Border>
+
+                <!-- New Mail Button for O365 -->
+                <Button x:Name="BtnO365NewMail" Grid.Row="1" Content="➕ Thư mới" Style="{StaticResource FillButton}" Height="36" Margin="10,4,10,8" FontSize="12" FontWeight="SemiBold" Click="BtnO365Compose_Click" Visibility="Collapsed"/>
                 
                 <!-- TreeView -->
-                <TreeView Grid.Row="1" x:Name="TreePstFolders" Background="Transparent" BorderThickness="0" Padding="4" SelectedItemChanged="TreePstFolders_SelectedItemChanged">
+                <TreeView Grid.Row="2" x:Name="TreePstFolders" Background="Transparent" BorderThickness="0" Padding="4" SelectedItemChanged="TreePstFolders_SelectedItemChanged">
+                    <TreeView.Resources>
+                        <ContextMenu x:Key="FolderContextMenu" x:Shared="False" Opened="CtxFolderMenu_Opened">
+                            <!-- Header showing item count -->
+                            <MenuItem Header="Loading stats..." IsEnabled="False" FontSize="11" FontWeight="SemiBold"/>
+                            <Separator />
+                            
+                            <MenuItem Header="📁 Create new subfolder" Click="MnuCreateSubfolder_Click"/>
+                            <MenuItem Header="✏️ Rename" Click="MnuRenameFolder_Click"/>
+                            
+                            <MenuItem Header="🎨 Change color">
+                                <MenuItem Header="🔵 Blue" Click="MnuChangeFolderColor_Click" Tag="Blue"/>
+                                <MenuItem Header="🔴 Red" Click="MnuChangeFolderColor_Click" Tag="Red"/>
+                                <MenuItem Header="🟢 Green" Click="MnuChangeFolderColor_Click" Tag="Green"/>
+                                <MenuItem Header="🟡 Yellow" Click="MnuChangeFolderColor_Click" Tag="Yellow"/>
+                            </MenuItem>
+                            
+                            <MenuItem Header="➡️ Move" Click="MnuMoveFolder_Click"/>
+                            <MenuItem Header="🗑️ Delete" Click="MnuDeleteFolder_Click"/>
+                            <MenuItem Header="🗑️ Empty folder" Click="MnuEmptyFolder_Click"/>
+                            
+                            <Separator />
+                            
+                            <MenuItem Header="✉️ Mark all as read" Click="MnuMarkAllRead_Click"/>
+                            
+                            <Separator />
+                            
+                            <MenuItem Header="⭐ Add to Favorites" Click="MnuAddFavorites_Click"/>
+                            <MenuItem Header="↑ Move up" Click="MnuMoveUp_Click"/>
+                            <MenuItem Header="↓ Move down" Click="MnuMoveDown_Click"/>
+                            
+                            <Separator Visibility="Collapsed"/>
+                            <MenuItem Header="📦 Đóng tệp dữ liệu (.pst)" Click="MnuClosePst_Click" Visibility="Collapsed"/>
+                        </ContextMenu>
+                    </TreeView.Resources>
                     <TreeView.ItemContainerStyle>
                         <Style TargetType="TreeViewItem">
                             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
                             <Setter Property="IsExpanded" Value="True" />
+                            <Setter Property="Padding" Value="4,2" />
+                            <Setter Property="ContextMenu" Value="{StaticResource FolderContextMenu}" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TreeViewItem">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Toggle Expander Chevron -->
+                                            <ToggleButton x:Name="Expander" ClickMode="Press" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" Width="16" Height="16" Margin="2,0,2,0" Focusable="False">
+                                                <ToggleButton.Style>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="Transparent" Width="16" Height="16">
+                                                                        <Path x:Name="Chevron" Data="M 4,2 L 10,8 L 4,14" Stroke="#64748b" StrokeThickness="1.5" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                                                                            <Path.RenderTransform>
+                                                                                <RotateTransform Angle="0"/>
+                                                                            </Path.RenderTransform>
+                                                                        </Path>
+                                                                    </Border>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="Chevron" Property="RenderTransform">
+                                                                                <Setter.Value>
+                                                                                    <RotateTransform Angle="90"/>
+                                                                                </Setter.Value>
+                                                                            </Setter>
+                                                                            <Setter TargetName="Chevron" Property="Stroke" Value="#0078d4" />
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+
+                                            <!-- Content Border -->
+                                            <Border x:Name="Bd" Grid.Column="1" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" CornerRadius="4" Padding="6,4" SnapsToDevicePixels="true">
+                                                <Grid>
+                                                    <Border x:Name="SelectionBar" Width="3" Background="#0078d4" HorizontalAlignment="Left" Margin="-6,0,0,0" Visibility="Collapsed" CornerRadius="1.5"/>
+                                                    <ContentPresenter x:Name="PART_Header" ContentSource="Header" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Items Presenter -->
+                                            <ItemsPresenter x:Name="ItemsHost" Grid.Column="1" Grid.Row="1" />
+                                        </Grid>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="HasItems" Value="false">
+                                                <Setter TargetName="Expander" Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="true">
+                                                <Setter TargetName="Bd" Property="Background" Value="#eff6ff"/>
+                                                <Setter TargetName="SelectionBar" Property="Visibility" Value="Visible"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="true" SourceName="Bd">
+                                                <Setter TargetName="Bd" Property="Background" Value="#f3f4f6"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
                         </Style>
                     </TreeView.ItemContainerStyle>
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
-                            <StackPanel Orientation="Horizontal" Margin="0,3">
-                                <TextBlock Text="{Binding Icon}" Margin="0,0,6,0" FontSize="13" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#334155" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding UnreadDisplay}" FontSize="10" Foreground="#0078d4" FontWeight="Bold" Margin="4,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <Grid Width="200" Margin="0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Icon}" Margin="0,0,8,0" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="12" Foreground="#323130" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding UnreadCountText}" FontSize="11" Foreground="#0078d4" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            </Grid>
                         </HierarchicalDataTemplate>
                     </TreeView.ItemTemplate>
                 </TreeView>
@@ -299,77 +509,57 @@
         <Border Grid.Column="2" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,1,0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" /> <!-- Office 365 Panel -->
-                    <RowDefinition Height="Auto" /> <!-- Open Buttons -->
-                    <RowDefinition Height="Auto" /> <!-- Focused/Other Tabs -->
                     <RowDefinition Height="Auto" /> <!-- Search Box -->
+                    <RowDefinition Height="Auto" /> <!-- Focused/Other Tabs -->
                     <RowDefinition Height="*" />    <!-- Email List -->
                 </Grid.RowDefinitions>
 
-                <!-- Office 365 Status Panel -->
-                <Border Grid.Row="0" Background="#f8fafc" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8">
-                    <Grid>
-                        <!-- When Signed Out -->
-                        <Grid x:Name="GridO365SignedOut" Visibility="Visible">
-                            <Button Content="🔑 Đăng nhập Office 365" Background="#e05e26" Foreground="White" BorderThickness="0" Cursor="Hand" Padding="10,6" FontWeight="SemiBold" FontSize="11" Click="BtnO365SignIn_Click">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border CornerRadius="4" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                        </Grid>
-
-                        <!-- When Signed In -->
-                        <Grid x:Name="GridO365SignedIn" Visibility="Collapsed">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- User Avatar / Initials -->
-                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" Background="#e05e26" VerticalAlignment="Center" Margin="0,0,8,0">
-                                <TextBlock x:Name="TxtO365Avatar" Text="U" Foreground="White" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock x:Name="TxtO365Name" Text="User Name" FontWeight="SemiBold" FontSize="11" Foreground="#1e293b" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock x:Name="TxtO365Email" Text="email@office365.com" FontSize="9" Foreground="#64748b" TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="📝 Soạn" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Margin="0,0,4,0" Click="BtnO365Compose_Click"/>
-                                <Button Content="🚪" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Click="BtnO365SignOut_Click" ToolTip="Đăng xuất"/>
-                            </StackPanel>
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Row="1" Height="52" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
-                    <Grid>
+                <Border Grid.Row="1" Height="32" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Background="#ffffff">
+                    <Grid Margin="12,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Button Content="📁 Thư mục" Margin="6,8,3,8" Style="{StaticResource OutlineButton}" Click="BtnOpenFolder_Click" ToolTip="Quét thư mục chứa các file .msg, .eml" FontSize="11" Padding="4,8"/>
-                        <Button Grid.Column="1" Content="✉️ Chọn tệp" Margin="3,8,3,8" Style="{StaticResource OutlineButton}" Click="BtnOpenFile_Click" ToolTip="Mở một tệp email cụ thể" FontSize="11" Padding="4,8"/>
-                        <Button Grid.Column="2" Content="📦 Mở PST" Margin="3,8,6,8" Style="{StaticResource FillButton}" Click="BtnOpenPst_Click" ToolTip="Mở tệp Outlook Data (.pst, .ost)" FontSize="11" Padding="4,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="Focused" IsChecked="True" Style="{StaticResource OutlookTabButton}" Checked="FocusedTab_Checked" />
+                            <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" Margin="12,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Content="⇅" ToolTip="Sắp xếp" Style="{StaticResource ActionButton}" Padding="4" FontSize="11" Margin="0,0,8,0" Click="BtnSort_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu x:Name="MnuSort">
+                                        <MenuItem Header="Ngày gửi (Mới nhất trước)" Tag="DateDesc" Click="MnuSort_Click" IsChecked="True"/>
+                                        <MenuItem Header="Ngày gửi (Cũ nhất trước)" Tag="DateAsc" Click="MnuSort_Click" />
+                                        <Separator/>
+                                        <MenuItem Header="Người gửi (A-Z)" Tag="FromAsc" Click="MnuSort_Click" />
+                                        <MenuItem Header="Người gửi (Z-A)" Tag="FromDesc" Click="MnuSort_Click" />
+                                        <Separator/>
+                                        <MenuItem Header="Tiêu đề (A-Z)" Tag="SubjectAsc" Click="MnuSort_Click" />
+                                        <MenuItem Header="Tiêu đề (Z-A)" Tag="SubjectDesc" Click="MnuSort_Click" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                            <Button Content="⚙️" ToolTip="Bộ lọc nhanh" Style="{StaticResource ActionButton}" Padding="4" FontSize="11" Click="BtnFilter_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu x:Name="MnuFilter">
+                                        <MenuItem Header="Tất cả thư" Tag="All" Click="MnuFilter_Click" IsChecked="True"/>
+                                        <MenuItem Header="Thư chưa đọc" Tag="Unread" Click="MnuFilter_Click" />
+                                        <MenuItem Header="Thư có tệp đính kèm" Tag="HasAttachment" Click="MnuFilter_Click" />
+                                        <MenuItem Header="Gửi đích danh cho tôi" Tag="ToMe" Click="MnuFilter_Click" />
+                                        <Separator />
+                                        <MenuItem Header="📅 Nhận hôm nay" Tag="DateToday" Click="MnuFilter_Click" />
+                                        <MenuItem Header="📅 Nhận hôm qua" Tag="DateYesterday" Click="MnuFilter_Click" />
+                                        <MenuItem Header="📅 Nhận tuần này" Tag="DateThisWeek" Click="MnuFilter_Click" />
+                                        <MenuItem Header="📅 Nhận tháng này" Tag="DateThisMonth" Click="MnuFilter_Click" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
                     </Grid>
-                </Border>
-
-                <Border Grid.Row="2" Height="38" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1">
-                    <StackPanel Orientation="Horizontal" Margin="10,0">
-                        <RadioButton Content="Focused" IsChecked="True" Style="{StaticResource OutlookTabButton}" Checked="FocusedTab_Checked" />
-                        <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" />
-                    </StackPanel>
                 </Border>
 
                 <!-- Search Box Panel -->
-                <Border Grid.Row="3" Height="Auto" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
+                <Border Grid.Row="0" Height="Auto" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
                     <StackPanel>
                         <!-- Main Search Row -->
                         <Grid>
@@ -462,39 +652,190 @@
                 </Border>
 
                 <!-- Email ListBox -->
-                <Grid Grid.Row="4">
+                <Grid Grid.Row="2">
                     <ListBox x:Name="LstEmails" 
                              Background="#ffffff" 
                              BorderThickness="0" 
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              SelectionChanged="LstEmails_SelectionChanged">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="12,10"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                                                <Grid>
+                                                    <Border x:Name="SelectionBar" Width="3.5" Background="#0078d4" HorizontalAlignment="Left" Margin="-12,-10,0,-10" Visibility="Collapsed" CornerRadius="0"/>
+                                                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsSelected" Value="true">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#f3f4f6"/>
+                                                    <Setter TargetName="SelectionBar" Property="Visibility" Value="Visible"/>
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="true">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#f9fafb"/>
+                                                </Trigger>
+                                                <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                                    <Setter TargetName="SelectionBar" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#f8fafc" Padding="12,5" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1">
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="10.5" Foreground="#64748b"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListBox.GroupStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0,2">
+                                <Grid Margin="0,0">
+                                    <Grid.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="↩️ Trả lời" Click="MenuReply_Click" />
+                                            <MenuItem Header="🔂 Trả lời tất cả" Click="MenuReplyAll_Click" />
+                                            <MenuItem Header="➡️ Chuyển tiếp" Click="MenuForward_Click" />
+                                            <Separator />
+                                            <MenuItem Header="✉️ Đánh dấu Đọc/Chưa đọc" Click="MenuMarkRead_Click" />
+                                            <MenuItem Header="📦 Lưu trữ" Click="MenuArchive_Click" />
+                                            <MenuItem Header="🗑️ Xóa" Click="MenuDelete_Click" />
+                                            <Separator />
+                                            <MenuItem Header="🚫 Báo cáo thư rác (Junk)" Click="MenuJunk_Click" />
+                                        </ContextMenu>
+                                    </Grid.ContextMenu>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
+                                    <!-- Multi-select Checkbox & Avatar Circle Container -->
+                                    <Grid Grid.Column="0" Grid.RowSpan="3" Width="36" Height="36" Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <!-- CheckBox (visible on hover or checked) -->
+                                        <CheckBox x:Name="ChkSelectEmail" HorizontalAlignment="Center" VerticalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay}" Checked="ChkSelectEmail_Checked" Unchecked="ChkSelectEmail_Unchecked" Tag="{Binding}">
+                                            <CheckBox.Style>
+                                                <Style TargetType="CheckBox">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </CheckBox.Style>
+                                        </CheckBox>
+
+                                        <!-- Avatar Circle (visible by default, collapsed when checkbox is visible) -->
+                                        <Border Width="32" Height="32" CornerRadius="16" Background="#b2dfdb" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ElementName=ChkSelectEmail, Path=Visibility}" Value="Visible">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding SenderInitials}" Foreground="#004d40" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+
                                     <!-- Sender Name -->
-                                    <TextBlock Grid.Column="0" Text="{Binding FromDisplay}" FontWeight="Bold" Foreground="#1f2937" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding FromClean}" FontWeight="Bold" Foreground="#323130" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
 
                                     <!-- Date/Time -->
-                                    <TextBlock Grid.Column="1" Text="{Binding DateDisplay}" Foreground="#94a3b8" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding DateDisplay}" FontSize="10.5" Margin="8,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#64748b" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                                        <Setter Property="Foreground" Value="#0078d4" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
 
-                                    <!-- Subject -->
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Subject}" FontWeight="SemiBold" Foreground="#0078d4" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                    <!-- Hover Quick Actions Panel -->
+                                    <StackPanel Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <Button Content="✉️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" Margin="0,0,4,0" ToolTip="Đánh dấu Đọc/Chưa đọc" Click="BtnQuickToggleRead_Click"/>
+                                        <Button Content="🗑️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" ToolTip="Xóa nhanh" Click="BtnQuickDelete_Click"/>
+                                    </StackPanel>
 
-                                    <!-- Attachment Icon (paperclip) -->
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="📎" Foreground="#94a3b8" FontSize="12" Margin="8,4,0,0" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <!-- Subject (Blue if unread) -->
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Subject}" FontSize="11.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#323130" />
+                                                <Setter Property="FontWeight" Value="Normal" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                                        <Setter Property="Foreground" Value="#0078d4" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- Attachment Icon -->
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="📎" Foreground="#64748b" FontSize="11" Margin="8,2,0,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasAttachments}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
 
                                     <!-- Snippet/Preview -->
-                                    <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Snippet}" Foreground="#64748b" FontSize="11" Margin="0,4,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Snippet}" Foreground="#64748b" FontSize="11" Margin="0,3,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -532,27 +873,32 @@
                     <RowDefinition Height="Auto" /> <!-- Header Metadata (Subject, From, To, CC, Date, Action buttons) -->
                     <RowDefinition Height="Auto" /> <!-- Attachments Chips -->
                     <RowDefinition Height="*" />    <!-- Content Body Tabs -->
+                    <RowDefinition Height="Auto" /> <!-- Bottom Action Buttons -->
                 </Grid.RowDefinitions>
 
                 <!-- Subject, Sender Card -->
-                <Border Grid.Row="0" Background="#f8fafc" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="20,16">
+                <Border Grid.Row="0" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="20,12">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <!-- Subject & Summarize Button -->
-                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                        <!-- 1. Large Subject Title -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="TxtSubject" Text="Tiêu đề email" FontSize="16" FontWeight="Bold" Foreground="#1e293b" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                            <Button Grid.Column="1" Content="✨ Summarize this email" Style="{StaticResource SummarizeButton}" Margin="12,0,0,0" Click="BtnSummarize_Click" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtSubject" Text="Tiêu đề email" FontSize="16" FontWeight="Bold" Foreground="#323130" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="BtnO365Archive" Content="📦 Archive" Style="{StaticResource ActionButton}" Margin="8,0,0,0" Click="BtnO365Archive_Click" Visibility="Collapsed"/>
+                                <Button x:Name="BtnO365Delete" Content="🗑️ Delete" Style="{StaticResource ActionButton}" Margin="6,0,0,0" Click="BtnO365Delete_Click" Visibility="Collapsed"/>
+                                <Button Content="✨ Summarize with AI" Style="{StaticResource SummarizeButton}" Margin="12,0,0,0" Click="BtnSummarize_Click"/>
+                            </StackPanel>
                         </Grid>
 
-                        <!-- Sender Profile Card -->
+                        <!-- 2. Sender Profile Card -->
                         <Grid Grid.Row="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -560,26 +906,25 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <!-- Avatar -->
-                            <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="#0078d4" VerticalAlignment="Top" Margin="0,0,12,0">
-                                <TextBlock x:Name="TxtAvatar" Text="AB" Foreground="White" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <!-- Avatar Circle -->
+                            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#0078d4" VerticalAlignment="Top" Margin="0,0,12,0">
+                                <TextBlock x:Name="TxtAvatar" Text="AB" Foreground="White" FontWeight="Bold" FontSize="13.5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
 
                             <!-- From, To, CC info -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Top">
-                                <TextBox x:Name="TxtFrom" Text="Người gửi &lt;email@example.com&gt;" FontWeight="Bold" Foreground="#1f2937" FontSize="13" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" TextWrapping="Wrap" CaretBrush="Transparent"/>
-                                <TextBox x:Name="TxtTo" Text="To: N/A" Foreground="#475569" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent"/>
-                                <TextBox x:Name="TxtCc" Text="Cc: N/A" Foreground="#475569" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent" Visibility="Collapsed"/>
+                                <TextBox x:Name="TxtFrom" Text="Người gửi &lt;email@example.com&gt;" FontWeight="Bold" Foreground="#323130" FontSize="12.5" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" TextWrapping="Wrap" CaretBrush="Transparent"/>
+                                <TextBox x:Name="TxtTo" Text="To: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent"/>
+                                <TextBox x:Name="TxtCc" Text="Cc: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent" Visibility="Collapsed"/>
                             </StackPanel>
 
-
-                            <!-- Date/Time & Reply buttons -->
+                            <!-- Date/Time & Small Quick Reply Bar -->
                             <StackPanel Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right">
-                                <TextBlock x:Name="TxtDate" Text="Này nọ kia" Foreground="#64748b" FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="TxtDate" Text="Này nọ kia" Foreground="#64748b" FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,4"/>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Content="↩️ Reply" Style="{StaticResource ActionButton}"/>
-                                    <Button Content="🔂 Reply all" Margin="6,0,0,0" Style="{StaticResource ActionButton}"/>
-                                    <Button Content="➡️ Forward" Margin="6,0,0,0" Style="{StaticResource ActionButton}"/>
+                                    <Button x:Name="BtnDetailReply" Content="↩️ Reply" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Click="BtnReply_Click"/>
+                                    <Button x:Name="BtnDetailReplyAll" Content="🔂 Reply all" Margin="4,0,0,0" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Click="BtnReplyAll_Click"/>
+                                    <Button x:Name="BtnDetailForward" Content="➡️ Forward" Margin="4,0,0,0" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Click="BtnForward_Click"/>
                                 </StackPanel>
                             </StackPanel>
                         </Grid>
@@ -656,8 +1001,90 @@
                     </TabItem>
                 </TabControl>
 
+                <!-- Bottom Inline Rich Editor Panel (Initially Hidden, Expands when Active) -->
+                <Border Grid.Row="3" x:Name="BdrInlineEditor" Background="#ffffff" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="20,12" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" /> <!-- Action Label / Action Type Indicator -->
+                                <RowDefinition Height="Auto" /> <!-- Recipients Inputs (To, Cc) -->
+                                <RowDefinition Height="Auto" /> <!-- Formatting Toolbar -->
+                                <RowDefinition Height="180" />  <!-- RichTextBox Body Editor -->
+                                <RowDefinition Height="Auto" /> <!-- Attachment Chips -->
+                                <RowDefinition Height="Auto" /> <!-- Send/Discard Action Bar -->
+                            </Grid.RowDefinitions>
+
+                            <!-- Row 0: Action Label -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock x:Name="TxtInlineActionType" Text="↩️ Replying to sender..." FontSize="12" FontWeight="SemiBold" Foreground="#0078d4" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Row 1: Recipients inputs (To, Cc) -->
+                            <Grid Grid.Row="1" Margin="0,0,0,10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="To:" FontSize="11.5" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0" Width="24"/>
+                                <TextBox Grid.Row="0" Grid.Column="1" x:Name="TxtInlineTo" FontSize="12" Padding="4,3" BorderBrush="#cbd5e1" BorderThickness="0,0,0,1" Margin="0,0,0,6" Background="Transparent"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Cc:" FontSize="11.5" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0" Width="24"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtInlineCc" FontSize="12" Padding="4,3" BorderBrush="#cbd5e1" BorderThickness="0,0,0,1" Background="Transparent"/>
+                            </Grid>
+
+                            <!-- Row 2: Formatting Toolbar -->
+                            <Border Grid.Row="2" Background="#f3f4f6" CornerRadius="4,4,0,0" Padding="8,4" BorderBrush="#cbd5e1" BorderThickness="1,1,1,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="B" FontWeight="Bold" Style="{StaticResource ActionButton}" Width="24" Height="24" Padding="0" Click="BtnInlineBold_Click" ToolTip="Bold (Ctrl+B)"/>
+                                    <Button Content="I" FontStyle="Italic" Style="{StaticResource ActionButton}" Width="24" Height="24" Padding="0" Click="BtnInlineItalic_Click" ToolTip="Italic (Ctrl+I)" Margin="4,0,0,0"/>
+                                    <Button Content="U" Style="{StaticResource ActionButton}" Width="24" Height="24" Padding="0" Click="BtnInlineUnderline_Click" ToolTip="Underline (Ctrl+U)" Margin="4,0,0,0"/>
+                                    <Separator Width="1" Background="#cbd5e1" Margin="6,4" Height="16"/>
+                                    <Button Content="🎨 Blue" Foreground="#0078d4" Style="{StaticResource ActionButton}" Padding="4,0" FontSize="11" Click="BtnInlineBlueText_Click" ToolTip="Text Color Blue" Height="24"/>
+                                    <Separator Width="1" Background="#cbd5e1" Margin="6,4" Height="16"/>
+                                    <Button Content="📎 Attach file" Style="{StaticResource ActionButton}" Padding="6,0" FontSize="11" Click="BtnInlineAttach_Click" ToolTip="Đính kèm tệp tin" Height="24"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Row 3: Body RichTextBox -->
+                            <RichTextBox Grid.Row="3" x:Name="RtfInlineBody" BorderBrush="#cbd5e1" BorderThickness="1" Padding="10" VerticalScrollBarVisibility="Auto" FontSize="12.5" FontFamily="Segoe UI" AcceptsReturn="True" AllowDrop="True" PreviewDragOver="RtfInlineBody_PreviewDragOver" Drop="RtfInlineBody_Drop"/>
+
+                            <!-- Row 4: Attachment List -->
+                            <ItemsControl Grid.Row="4" x:Name="LstInlineAttachments" Margin="0,6,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#f3f4f6" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="12" Padding="8,4" Margin="0,0,6,6" VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="📎" FontSize="10" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding FileName}" FontSize="10.5" Foreground="#323130" MaxWidth="140" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                <Button Content="✕" Foreground="#ef4444" Style="{StaticResource ActionButton}" Padding="4,0" FontSize="9" Margin="6,0,0,0" Click="BtnInlineRemoveAttachment_Click" Tag="{Binding FilePath}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Row 5: Action Buttons (Send, Discard) -->
+                            <Grid Grid.Row="5" Margin="0,10,0,0">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Button Content="Send" Width="90" Height="30" Style="{StaticResource FillButton}" Click="BtnInlineSend_Click" />
+                                    <Button Content="Discard" Width="90" Height="30" Style="{StaticResource OutlineButton}" Click="BtnInlineDiscard_Click" Margin="8,0,0,0" />
+                                </StackPanel>
+                                <TextBlock x:Name="TxtInlineDraftStatus" Text="" Foreground="#64748b" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
                 <!-- Summary Overlay Popup -->
-                <Border x:Name="BdrSummaryPopup" Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100" Background="#80000000" Visibility="Collapsed" MouseDown="BdrSummaryPopup_MouseDown">
+                <Border x:Name="BdrSummaryPopup" Grid.Row="0" Grid.RowSpan="4" Panel.ZIndex="100" Background="#80000000" Visibility="Collapsed" MouseDown="BdrSummaryPopup_MouseDown">
                     <Border Background="#ffffff" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="8" Padding="24" Width="550" Height="450" HorizontalAlignment="Center" VerticalAlignment="Center" MouseDown="BdrSummaryPopup_InnerMouseDown">
                         <Grid>
                             <Grid.RowDefinitions>
@@ -679,8 +1106,15 @@
             </Grid>
         </Grid>
 
+        </Grid> <!-- CLOSE MAIN LAYOUT GRID -->
+
+        <!-- Outlook Web Overlay (full area when O365 active) -->
+        <Grid x:Name="OutlookWebOverlay" Grid.Row="1" Visibility="Collapsed" Background="#ffffff">
+            <wpf:WebView2 x:Name="OutlookWebView" />
+        </Grid>
+
         <!-- Status Bar -->
-        <StatusBar Grid.Row="1" Grid.ColumnSpan="5" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
+        <StatusBar Grid.Row="2" Grid.ColumnSpan="5" Background="#f3f4f6" BorderBrush="#e5e7eb" BorderThickness="0,1,0,0" Padding="12,5">
             <TextBlock x:Name="TxtStatus" Text="Sẵn sàng. Kéo thả file email/thư mục để xem." Foreground="#64748b" FontSize="11" />
         </StatusBar>
 

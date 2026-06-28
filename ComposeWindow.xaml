@@ -7,7 +7,8 @@
         mc:Ignorable="d"
         Title="Soạn thư mới - Office 365" Height="620" Width="800"
         WindowStartupLocation="CenterOwner" Background="#f8fafc"
-        Foreground="#1e293b" Icon="app_icon.png">
+        Foreground="#1e293b" Icon="app_icon.png"
+        Loaded="Window_Loaded">
 
     <Window.Resources>
         <!-- Style for primary button -->
@@ -94,7 +95,27 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Text="Đến (To):" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#475569"/>
-            <TextBox Grid.Column="1" x:Name="TxtTo" Padding="8,6" BorderBrush="#cbd5e1" BorderThickness="1" FontSize="13"/>
+            <TextBox Grid.Column="1" x:Name="TxtTo" Padding="8,6" BorderBrush="#cbd5e1" BorderThickness="1" FontSize="13" TextChanged="TxtTo_TextChanged" PreviewKeyDown="TxtTo_PreviewKeyDown"/>
+
+            <!-- Suggestions Popup -->
+            <Popup x:Name="PopupSuggestions" PlacementTarget="{Binding ElementName=TxtTo}" Placement="Bottom" IsOpen="False" StaysOpen="False" Width="400">
+                <Border Background="#ffffff" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="4" MaxHeight="200">
+                    <ListBox x:Name="LstSuggestions" BorderThickness="0" Background="Transparent" SelectionChanged="LstSuggestions_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="6,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#1f2937" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Email}" Foreground="#64748b" FontSize="11" Margin="10,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </Popup>
         </Grid>
 
         <!-- CC Field -->
@@ -117,10 +138,31 @@
             <TextBox Grid.Column="1" x:Name="TxtSubject" Padding="8,6" BorderBrush="#cbd5e1" BorderThickness="1" FontSize="13"/>
         </Grid>
 
-        <!-- Body Text Box -->
-        <Border Grid.Row="4" Background="White" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="4">
-            <TextBox x:Name="TxtBody" AcceptsReturn="True" TextWrapping="Wrap" BorderThickness="0" Padding="12" FontSize="13" VerticalScrollBarVisibility="Auto" AcceptsTab="True"/>
-        </Border>
+        <!-- Body Rich Text Editor -->
+        <Grid Grid.Row="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!-- Formatting Toolbar -->
+            <Border Grid.Row="0" Background="#f8fafc" BorderBrush="#cbd5e1" BorderThickness="1,1,1,0" CornerRadius="4,4,0,0" Padding="8,4">
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="B" FontWeight="Bold" Width="28" Height="26" Margin="0,0,4,0" Style="{StaticResource AttachButton}" Padding="0" Click="BtnFormatBold_Click" ToolTip="Bôi đậm (Ctrl+B)"/>
+                    <Button Content="I" FontStyle="Italic" Width="28" Height="26" Margin="0,0,4,0" Style="{StaticResource AttachButton}" Padding="0" Click="BtnFormatItalic_Click" ToolTip="In nghiêng (Ctrl+I)"/>
+                    <Button Content="U" Width="28" Height="26" Margin="0,0,4,0" Style="{StaticResource AttachButton}" Padding="0" Click="BtnFormatUnderline_Click" ToolTip="Gạch chân (Ctrl+U)"/>
+                    <Separator Width="1" Background="#cbd5e1" Margin="4,3" Height="18"/>
+                    <Button Content="• List" Width="48" Height="26" Margin="4,0,4,0" Style="{StaticResource AttachButton}" Padding="0" Click="BtnFormatList_Click" ToolTip="Danh sách dấu chấm"/>
+                    <Separator Width="1" Background="#cbd5e1" Margin="4,3" Height="18"/>
+                    <Button Content="🎨 Màu" Width="48" Height="26" Margin="4,0,0,0" Style="{StaticResource AttachButton}" Padding="0" Click="BtnFormatColor_Click" ToolTip="Chọn màu chữ"/>
+                </StackPanel>
+            </Border>
+
+            <!-- RichTextBox for body -->
+            <Border Grid.Row="1" Background="White" BorderBrush="#cbd5e1" BorderThickness="1" CornerRadius="0,0,4,4">
+                <RichTextBox x:Name="RtfBody" BorderThickness="0" Padding="12" FontSize="13" VerticalScrollBarVisibility="Auto" AcceptsTab="True" SelectionChanged="RtfBody_SelectionChanged" AllowDrop="True" PreviewDragOver="RtfBody_PreviewDragOver" Drop="RtfBody_Drop"/>
+            </Border>
+        </Grid>
 
         <!-- Attachments List Panel -->
         <StackPanel Grid.Row="5" Margin="0,16,0,0" x:Name="PanelAttachments" Visibility="Collapsed">

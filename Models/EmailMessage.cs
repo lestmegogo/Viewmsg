@@ -14,6 +14,22 @@ public class EmailMessage
     public string To { get; set; } = "";
     public string Cc { get; set; } = "";
     public DateTime? Date { get; set; }
+    public bool IsRead { get; set; } = true;
+    public bool IsSelected { get; set; } = false;
+
+    public string DateGroup
+    {
+        get
+        {
+            if (!Date.HasValue) return "Cũ hơn (Older)";
+            var date = Date.Value.Date;
+            if (date == DateTime.Today) return "Hôm nay (Today)";
+            if (date == DateTime.Today.AddDays(-1)) return "Hôm qua (Yesterday)";
+            if (date >= DateTime.Today.AddDays(-7)) return "Tuần này (This week)";
+            if (date >= DateTime.Today.AddDays(-30)) return "Tháng này (This month)";
+            return "Cũ hơn (Older)";
+        }
+    }
 
     /// <summary>Nội dung HTML (ưu tiên). Có thể rỗng.</summary>
     public string? BodyHtml { get; set; }
@@ -28,6 +44,8 @@ public class EmailMessage
         string.IsNullOrWhiteSpace(FromName)
             ? FromEmail
             : string.IsNullOrWhiteSpace(FromEmail) ? FromName : $"{FromName} <{FromEmail}>";
+
+    public string FromClean => string.IsNullOrWhiteSpace(FromName) ? FromEmail : FromName;
 
     public string DateDisplay => Date?.ToString("dddd, dd/MM/yyyy HH:mm") ?? "";
 
