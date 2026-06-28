@@ -1705,7 +1705,6 @@ public partial class MainWindow : Window
         {
             try
             {
-                ClosePstView();
                 var parsed = EmailParser.Parse(dialog.FileName);
                 if (!_allEmails.Any(em => em.FilePath == parsed.FilePath))
                 {
@@ -1739,7 +1738,6 @@ public partial class MainWindow : Window
             };
             if (dialog.ShowDialog() == true)
             {
-                ClosePstView();
                 LoadFolder(dialog.FolderName);
             }
         }
