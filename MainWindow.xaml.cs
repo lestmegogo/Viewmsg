@@ -2863,6 +2863,7 @@ public partial class MainWindow : Window
             if (CboSearchScope != null) CboSearchScope.SelectedIndex = 0;
             if (CboDateFilter != null) CboDateFilter.SelectedIndex = 0;
             if (ChkHasAttachments != null) ChkHasAttachments.IsChecked = false;
+            if (ChkUnreadOnly != null) ChkUnreadOnly.IsChecked = false;
             if (DpStartDate != null) DpStartDate.SelectedDate = null;
             if (DpEndDate != null) DpEndDate.SelectedDate = null;
             UpdateEmailList();
@@ -3159,16 +3160,20 @@ public partial class MainWindow : Window
     {
         if (string.IsNullOrEmpty(target)) return false;
         if (string.IsNullOrEmpty(keyword)) return false;
+
+        // Normalize both strings to Form C to ensure compatibility between different keyboard drivers (Form C vs Form D)
+        string normTarget = target.Normalize(System.Text.NormalizationForm.FormC);
+        string normKeyword = keyword.Normalize(System.Text.NormalizationForm.FormC);
         
         // 1. Strict match first (case-insensitive)
-        if (target.Contains(keyword, StringComparison.OrdinalIgnoreCase)) return true;
+        if (normTarget.Contains(normKeyword, StringComparison.OrdinalIgnoreCase)) return true;
         
         // 2. Unaccented match if the keyword itself is unaccented
-        string normalizedKeyword = RemoveDiacritics(keyword);
-        if (normalizedKeyword == keyword) // Keyword is unaccented
+        string normalizedKeyword = RemoveDiacritics(normKeyword);
+        if (normalizedKeyword == normKeyword) // Keyword is unaccented
         {
-            string normalizedTarget = RemoveDiacritics(target);
-            return normalizedTarget.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+            string normalizedTarget = RemoveDiacritics(normTarget);
+            return normalizedTarget.Contains(normKeyword, StringComparison.OrdinalIgnoreCase);
         }
         
         return false;
