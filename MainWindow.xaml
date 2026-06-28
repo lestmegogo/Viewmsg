@@ -525,7 +525,7 @@
                             <RadioButton Content="Other" Style="{StaticResource OutlookTabButton}" Checked="OtherTab_Checked" Margin="12,0,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="⇅" ToolTip="Sắp xếp" Style="{StaticResource ActionButton}" Padding="4" FontSize="11" Margin="0,0,8,0" Click="BtnSort_Click">
+                            <Button Content="⇅" ToolTip="Sắp xếp" Style="{StaticResource ActionButton}" Padding="4" FontSize="11" Click="BtnSort_Click">
                                 <Button.ContextMenu>
                                     <ContextMenu x:Name="MnuSort">
                                         <MenuItem Header="Ngày gửi (Mới nhất trước)" Tag="DateDesc" Click="MnuSort_Click" IsChecked="True"/>
@@ -536,21 +536,6 @@
                                         <Separator/>
                                         <MenuItem Header="Tiêu đề (A-Z)" Tag="SubjectAsc" Click="MnuSort_Click" />
                                         <MenuItem Header="Tiêu đề (Z-A)" Tag="SubjectDesc" Click="MnuSort_Click" />
-                                    </ContextMenu>
-                                </Button.ContextMenu>
-                            </Button>
-                            <Button Content="⚙️" ToolTip="Bộ lọc nhanh" Style="{StaticResource ActionButton}" Padding="4" FontSize="11" Click="BtnFilter_Click">
-                                <Button.ContextMenu>
-                                    <ContextMenu x:Name="MnuFilter">
-                                        <MenuItem Header="Tất cả thư" Tag="All" Click="MnuFilter_Click" IsChecked="True"/>
-                                        <MenuItem Header="Thư chưa đọc" Tag="Unread" Click="MnuFilter_Click" />
-                                        <MenuItem Header="Thư có tệp đính kèm" Tag="HasAttachment" Click="MnuFilter_Click" />
-                                        <MenuItem Header="Gửi đích danh cho tôi" Tag="ToMe" Click="MnuFilter_Click" />
-                                        <Separator />
-                                        <MenuItem Header="📅 Nhận hôm nay" Tag="DateToday" Click="MnuFilter_Click" />
-                                        <MenuItem Header="📅 Nhận hôm qua" Tag="DateYesterday" Click="MnuFilter_Click" />
-                                        <MenuItem Header="📅 Nhận tuần này" Tag="DateThisWeek" Click="MnuFilter_Click" />
-                                        <MenuItem Header="📅 Nhận tháng này" Tag="DateThisMonth" Click="MnuFilter_Click" />
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -645,8 +630,9 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- CheckBox for Attachments -->
-                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2" x:Name="ChkHasAttachments" Content="Chỉ hiện email có tệp đính kèm 📎" FontSize="11" Margin="0,10,0,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
+                            <!-- CheckBoxes for Attachments & Unread -->
+                            <CheckBox Grid.Row="2" Grid.Column="0" x:Name="ChkHasAttachments" Content="Có tệp đính kèm 📎" FontSize="11" Margin="0,10,4,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
+                            <CheckBox Grid.Row="2" Grid.Column="1" x:Name="ChkUnreadOnly" Content="Thư chưa đọc ✉️" FontSize="11" Margin="4,10,0,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -966,7 +952,7 @@
                     <!-- HTML Render Tab -->
                     <TabItem Header="Xem giao diện (HTML)">
                         <Grid>
-                            <wpf:WebView2 x:Name="EmailWebView" />
+                            <wpf:WebView2 x:Name="EmailWebView" AllowExternalDrop="False" />
                         </Grid>
                     </TabItem>
 
@@ -1110,7 +1096,7 @@
 
         <!-- Outlook Web Overlay (full area when O365 active) -->
         <Grid x:Name="OutlookWebOverlay" Grid.Row="1" Visibility="Collapsed" Background="#ffffff">
-            <wpf:WebView2 x:Name="OutlookWebView" />
+            <wpf:WebView2 x:Name="OutlookWebView" AllowExternalDrop="False" />
         </Grid>
 
         <!-- Status Bar -->

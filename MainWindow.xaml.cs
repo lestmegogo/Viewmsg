@@ -79,6 +79,7 @@ public partial class MainWindow : Window
     private System.Windows.Threading.DispatcherTimer? _o365NewMailTimer;
     private string? _activeFolderId;
     private System.Windows.Threading.DispatcherTimer? _owaEmailGrabberTimer;
+    private System.Windows.Threading.DispatcherTimer? _searchDebounceTimer;
 
     private string _inlineActionType = "";
     private List<string> _inlineAttachments = new();
@@ -86,7 +87,6 @@ public partial class MainWindow : Window
     private System.Windows.Threading.DispatcherTimer? _inlineDraftTimer;
 
     private string _currentSortTag = "DateDesc";
-    private string _currentFilterTag = "All";
 
     public MainWindow()
     {
@@ -1770,19 +1770,18 @@ public partial class MainWindow : Window
                 switch (scopeIndex)
                 {
                     case 1: // Subject only
-                        return e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                        return IsMatch(e.Subject, keyword);
                     case 2: // Sender only
-                        return e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                               e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                        return IsMatch(e.FromName, keyword) || IsMatch(e.FromEmail, keyword);
                     case 3: // Recipient only
-                        return e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                        return IsMatch(e.To, keyword);
                     case 0: // All fields
                     default:
-                        return e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                               e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                               e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                               e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                               (e.BodyText != null && e.BodyText.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                        return IsMatch(e.Subject, keyword) ||
+                               IsMatch(e.FromName, keyword) ||
+                               IsMatch(e.FromEmail, keyword) ||
+                               IsMatch(e.To, keyword) ||
+                               IsMatch(e.BodyText, keyword);
                 }
             });
         }
@@ -1838,38 +1837,10 @@ public partial class MainWindow : Window
             emailsToFilter = emailsToFilter.Where(e => e.HasAttachments);
         }
 
-        // Apply Quick Filter
-        if (_currentFilterTag == "Unread")
+        // Apply Unread Filtering
+        if (ChkUnreadOnly != null && ChkUnreadOnly.IsChecked == true)
         {
             emailsToFilter = emailsToFilter.Where(e => !e.IsRead);
-        }
-        else if (_currentFilterTag == "HasAttachment")
-        {
-            emailsToFilter = emailsToFilter.Where(e => e.HasAttachments);
-        }
-        else if (_currentFilterTag == "ToMe")
-        {
-            string userEmail = Office365Service.UserEmail ?? "HieuDX2@fpt.com";
-            emailsToFilter = emailsToFilter.Where(e => e.To != null && e.To.Contains(userEmail, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (_currentFilterTag == "DateToday")
-        {
-            emailsToFilter = emailsToFilter.Where(e => e.Date.HasValue && e.Date.Value.Date == DateTime.Today);
-        }
-        else if (_currentFilterTag == "DateYesterday")
-        {
-            emailsToFilter = emailsToFilter.Where(e => e.Date.HasValue && e.Date.Value.Date == DateTime.Today.AddDays(-1));
-        }
-        else if (_currentFilterTag == "DateThisWeek")
-        {
-            int diff = (7 + (DateTime.Today.DayOfWeek - DayOfWeek.Monday)) % 7;
-            DateTime startOfWeek = DateTime.Today.AddDays(-1 * diff).Date;
-            emailsToFilter = emailsToFilter.Where(e => e.Date.HasValue && e.Date.Value.Date >= startOfWeek);
-        }
-        else if (_currentFilterTag == "DateThisMonth")
-        {
-            var startOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            emailsToFilter = emailsToFilter.Where(e => e.Date.HasValue && e.Date.Value.Date >= startOfMonth);
         }
 
         // Apply Sorting
@@ -2631,7 +2602,7 @@ public partial class MainWindow : Window
         }
     }
 
-    // Xử lý sự kiện Tìm kiếm thời gian thực
+    // Xử lý sự kiện Tìm kiếm thời gian thực (Debounced)
     private void TxtSearch_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (TxtSearch == null || TxtSearchPlaceholder == null || BtnClearSearch == null) return;
@@ -2639,7 +2610,20 @@ public partial class MainWindow : Window
         _currentSearchText = TxtSearch.Text;
         TxtSearchPlaceholder.Visibility = string.IsNullOrEmpty(_currentSearchText) ? Visibility.Visible : Visibility.Collapsed;
         BtnClearSearch.Visibility = string.IsNullOrEmpty(_currentSearchText) ? Visibility.Collapsed : Visibility.Visible;
-        UpdateEmailList();
+
+        if (_searchDebounceTimer == null)
+        {
+            _searchDebounceTimer = new System.Windows.Threading.DispatcherTimer();
+            _searchDebounceTimer.Interval = TimeSpan.FromMilliseconds(300);
+            _searchDebounceTimer.Tick += (s, ev) =>
+            {
+                _searchDebounceTimer.Stop();
+                UpdateEmailList();
+            };
+        }
+
+        _searchDebounceTimer.Stop();
+        _searchDebounceTimer.Start();
     }
 
     private void TxtSearch_GotFocus(object sender, RoutedEventArgs e)
@@ -2668,14 +2652,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnFilter_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn)
-        {
-            btn.ContextMenu.IsOpen = true;
-        }
-    }
-
     private void MnuSort_Click(object sender, RoutedEventArgs e)
     {
         if (sender is MenuItem clickedItem)
@@ -2693,22 +2669,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MnuFilter_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem clickedItem)
-        {
-            foreach (var item in MnuFilter.Items)
-            {
-                if (item is MenuItem mi)
-                {
-                    mi.IsChecked = (mi == clickedItem);
-                }
-            }
 
-            _currentFilterTag = clickedItem.Tag as string ?? "All";
-            UpdateEmailList();
-        }
-    }
 
     private void ChkSelectEmail_Checked(object sender, RoutedEventArgs e)
     {
@@ -3192,6 +3153,45 @@ public partial class MainWindow : Window
         };
 
         notifyWin.Show();
+    }
+
+    private static bool IsMatch(string target, string keyword)
+    {
+        if (string.IsNullOrEmpty(target)) return false;
+        if (string.IsNullOrEmpty(keyword)) return false;
+        
+        // 1. Strict match first (case-insensitive)
+        if (target.Contains(keyword, StringComparison.OrdinalIgnoreCase)) return true;
+        
+        // 2. Unaccented match if the keyword itself is unaccented
+        string normalizedKeyword = RemoveDiacritics(keyword);
+        if (normalizedKeyword == keyword) // Keyword is unaccented
+        {
+            string normalizedTarget = RemoveDiacritics(target);
+            return normalizedTarget.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+        }
+        
+        return false;
+    }
+
+    private static string RemoveDiacritics(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                if (c == 'đ') stringBuilder.Append('d');
+                else if (c == 'Đ') stringBuilder.Append('D');
+                else stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
     }
 
     protected override void OnClosed(EventArgs e)
