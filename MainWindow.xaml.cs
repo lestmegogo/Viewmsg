@@ -99,7 +99,6 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        InitializeWebView();
         InitializeOffice365();
 
         // Restore saved PST files session
@@ -565,56 +564,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void InitializeWebView()
-    {
-        try
-        {
-            // Check if WebView2 Runtime is available
-            string? version = null;
-            try
-            {
-                version = Microsoft.Web.WebView2.Core.CoreWebView2Environment.GetAvailableBrowserVersionString();
-            }
-            catch { /* Runtime not found */ }
 
-            if (string.IsNullOrEmpty(version))
-            {
-                MessageBoxResult result = MessageBox.Show(
-                    "Không thể khởi chạy trình duyệt Edge Chromium (WebView2). Có thể máy tính của bạn chưa được cài đặt WebView2 Runtime.\n\nBạn có muốn tải xuống và cài đặt WebView2 Runtime từ trang chủ của Microsoft ngay bây giờ không?",
-                    "Yêu cầu thành phần hệ thống",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = "https://go.microsoft.com/fwlink/p/?LinkId=2124703",
-                            UseShellExecute = true
-                        });
-                    }
-                    catch (Exception openEx)
-                    {
-                        MessageBox.Show($"Không thể mở trình duyệt để tải xuống: {openEx.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                return;
-            }
-
-            // WebView2 Runtime available — initialize with a dedicated user data folder
-            var userDataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "MsgViewer", "WebView2");
-            var env = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(null, userDataFolder);
-            await EmailWebView.EnsureCoreWebView2Async(env);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"WebView2 init error: {ex.Message}");
-        }
-    }
 
     private bool IsWebSessionActive()
     {
@@ -2122,7 +2072,11 @@ public partial class MainWindow : Window
         {
             if (EmailWebView.CoreWebView2 == null)
             {
-                await EmailWebView.EnsureCoreWebView2Async(null);
+                var userDataFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MsgViewer", "WebView2");
+                var env = await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await EmailWebView.EnsureCoreWebView2Async(env);
             }
 
             if (EmailWebView.CoreWebView2 != null)
