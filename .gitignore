@@ -10,3 +10,7 @@
 
 # Ignore build logs
 *.log
+
+# Ignore local builds
+Appbuild/
+[Aa]ppbuild/
