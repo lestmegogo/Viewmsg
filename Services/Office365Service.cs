@@ -30,7 +30,10 @@ namespace MsgViewer.Services
         public static async Task InitializeAsync()
         {
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "o365_config.txt");
-            if (File.Exists(configPath))
+            bool configExists = File.Exists(configPath);
+            bool shouldWriteNewConfig = !configExists;
+
+            if (configExists)
             {
                 try
                 {
@@ -39,7 +42,12 @@ namespace MsgViewer.Services
                     if (lines.Length > 0)
                     {
                         var guidStr = lines[0].Trim();
-                        if (Guid.TryParse(guidStr, out _))
+                        if (guidStr == "04b07795-8ddb-461a-bbee-02f9e1bf7b46" || guidStr == "da2c38cb-4e9b-449e-9d29-a1b7eb6d953d")
+                        {
+                            ClientId = "327c9f81-4e1f-46c7-b7d4-9f24a84173b6";
+                            shouldWriteNewConfig = true;
+                        }
+                        else if (Guid.TryParse(guidStr, out _))
                         {
                             ClientId = guidStr;
                         }
@@ -47,7 +55,8 @@ namespace MsgViewer.Services
                 }
                 catch {}
             }
-            else
+
+            if (shouldWriteNewConfig)
             {
                 try
                 {
