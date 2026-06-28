@@ -14,7 +14,7 @@ namespace MsgViewer.Services
 {
     public class Office365Service
     {
-        private static string ClientId = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"; // Microsoft Office Global Client ID
+        private static string ClientId = "327c9f81-4e1f-46c7-b7d4-9f24a84173b6"; // User registered Client ID
         private static readonly string[] Scopes = { "User.Read", "Mail.ReadWrite", "Mail.Send" };
 
         private static IPublicClientApplication? _pca;
