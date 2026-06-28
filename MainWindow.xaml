@@ -335,8 +335,8 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="📝 Soạn" Style="{StaticResource OutlineToggleButton}" Padding="6,4" FontSize="10" Margin="0,0,4,0" Click="BtnO365Compose_Click"/>
-                                <Button Content="🚪" Style="{StaticResource OutlineToggleButton}" Padding="6,4" FontSize="10" Click="BtnO365SignOut_Click" ToolTip="Đăng xuất"/>
+                                <Button Content="📝 Soạn" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Margin="0,0,4,0" Click="BtnO365Compose_Click"/>
+                                <Button Content="🚪" Style="{StaticResource ActionButton}" Padding="6,4" FontSize="11" Click="BtnO365SignOut_Click" ToolTip="Đăng xuất"/>
                             </StackPanel>
                         </Grid>
                     </Grid>
