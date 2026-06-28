@@ -751,7 +751,10 @@
                                     </Grid>
 
                                     <!-- Sender Name -->
-                                    <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding FromClean}" FontWeight="Bold" Foreground="#323130" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Grid.Row="0" 
+                                               local:TextBlockHelper.HighlightText="{Binding FromClean}"
+                                               local:TextBlockHelper.Keyword="{Binding Path=SearchKeyword, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               FontWeight="Bold" Foreground="#323130" FontSize="12.5" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
 
                                     <!-- Date/Time -->
                                     <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding DateDisplay}" FontSize="10.5" Margin="8,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center">
