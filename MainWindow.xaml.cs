@@ -566,15 +566,23 @@ public partial class MainWindow : Window
 
 
 
+    private string GetSessionFilePath()
+    {
+        string dir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MsgViewer");
+        if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        return Path.Combine(dir, "o365_session.txt");
+    }
+
     private bool IsWebSessionActive()
     {
-        string sessionFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "o365_session.txt");
-        return File.Exists(sessionFile);
+        return File.Exists(GetSessionFilePath());
     }
 
     private void SaveWebSessionActive(bool active, string? email = null)
     {
-        string sessionFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "o365_session.txt");
+        string sessionFile = GetSessionFilePath();
         try
         {
             if (active)
@@ -594,7 +602,7 @@ public partial class MainWindow : Window
 
     private string GetSavedWebSessionEmail()
     {
-        string sessionFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "o365_session.txt");
+        string sessionFile = GetSessionFilePath();
         if (File.Exists(sessionFile))
         {
             try
@@ -815,6 +823,16 @@ public partial class MainWindow : Window
 
         try
         {
+            // 1. Try to get email from cookies first (fast and highly reliable)
+            string? cookieEmail = await GetEmailFromCookiesAsync();
+            if (!string.IsNullOrEmpty(cookieEmail))
+            {
+                SaveWebSessionActive(true, cookieEmail);
+                UpdateO365UIState();
+                return;
+            }
+
+            // 2. Fallback to JavaScript DOM grabbing
             string js = @"
 (function() {
     try {
@@ -855,6 +873,31 @@ public partial class MainWindow : Window
             }
         }
         catch {}
+    }
+
+    private async Task<string?> GetEmailFromCookiesAsync()
+    {
+        if (OutlookWebView.CoreWebView2 == null) return null;
+        try
+        {
+            var cookieManager = OutlookWebView.CoreWebView2.CookieManager;
+            var cookies = await cookieManager.GetCookiesAsync("https://outlook.office.com");
+            foreach (var cookie in cookies)
+            {
+                if (cookie.Name.Equals("DefaultAnchorMailbox", StringComparison.OrdinalIgnoreCase) ||
+                    cookie.Name.Equals("SignInNameHint", StringComparison.OrdinalIgnoreCase) ||
+                    cookie.Name.Equals("X-AnchorMailbox", StringComparison.OrdinalIgnoreCase))
+                {
+                    string val = Uri.UnescapeDataString(cookie.Value);
+                    if (val.Contains("@") && val.Length > 5)
+                    {
+                        return val;
+                    }
+                }
+            }
+        }
+        catch {}
+        return null;
     }
 
     private void RadOutlookWeb_Checked(object sender, RoutedEventArgs e)
