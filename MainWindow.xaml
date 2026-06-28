@@ -401,7 +401,7 @@
                             <MenuItem Header="↓ Move down" Click="MnuMoveDown_Click"/>
                             
                             <Separator Visibility="Collapsed"/>
-                            <MenuItem Header="📦 Đóng tệp dữ liệu (.pst)" Click="MnuClosePst_Click" Visibility="Collapsed"/>
+                            <MenuItem Header="❌ Gỡ bỏ tệp dữ liệu (.pst) khỏi ứng dụng" Click="MnuClosePst_Click" Visibility="Collapsed"/>
                         </ContextMenu>
                     </TreeView.Resources>
                     <TreeView.ItemContainerStyle>

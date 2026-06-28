@@ -311,7 +311,7 @@ public partial class MainWindow : Window
                     {
                         statsItem = mi;
                     }
-                    else if (header.Contains("Đóng tệp dữ liệu"))
+                    else if (header.Contains("Gỡ bỏ tệp dữ liệu"))
                     {
                         closePstItem = mi;
                     }
@@ -556,11 +556,11 @@ public partial class MainWindow : Window
                     PstFolderPanel.Visibility = Visibility.Collapsed;
                 }
 
-                TxtStatus.Text = $"Đã đóng tệp dữ liệu: {Path.GetFileName(node.Id)}";
+                TxtStatus.Text = $"Đã gỡ bỏ tệp dữ liệu: {Path.GetFileName(node.Id)} khỏi ứng dụng";
             }
             else
             {
-                MessageBox.Show("Vui lòng chọn thư mục gốc (tên tệp PST) để đóng tệp dữ liệu.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Vui lòng chọn thư mục gốc (tên tệp PST) để gỡ bỏ tệp dữ liệu.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }
