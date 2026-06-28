@@ -87,6 +87,15 @@ public partial class MainWindow : Window
 
     private string _currentSortTag = "DateDesc";
 
+    public static readonly DependencyProperty SearchKeywordProperty =
+        DependencyProperty.Register("SearchKeyword", typeof(string), typeof(MainWindow), new PropertyMetadata(""));
+
+    public string SearchKeyword
+    {
+        get => (string)GetValue(SearchKeywordProperty);
+        set => SetValue(SearchKeywordProperty, value);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
@@ -1760,6 +1769,8 @@ public partial class MainWindow : Window
         {
             ParseOutlookSearchQuery(keyword, out string? filterSubject, out string? filterFrom, out string? filterTo, out bool? filterHasAttachment, out bool? filterIsUnread, out string? generalKeyword);
 
+            SearchKeyword = generalKeyword ?? keyword;
+
             if (filterFrom != null)
             {
                 emailsToFilter = emailsToFilter.Where(e => IsMatch(e.FromName, filterFrom) || IsMatch(e.FromEmail, filterFrom));
@@ -1803,6 +1814,10 @@ public partial class MainWindow : Window
                     }
                 });
             }
+        }
+        else
+        {
+            SearchKeyword = "";
         }
 
         // Apply Date Filtering
@@ -3278,5 +3293,100 @@ public partial class MainWindow : Window
         _activePstFiles.Clear();
         StopO365Polling();
         base.OnClosed(e);
+    }
+}
+
+public static class TextBlockHelper
+{
+    public static readonly DependencyProperty HighlightTextProperty =
+        DependencyProperty.RegisterAttached(
+            "HighlightText",
+            typeof(string),
+            typeof(TextBlockHelper),
+            new PropertyMetadata(null, OnHighlightChanged));
+
+    public static readonly DependencyProperty KeywordProperty =
+        DependencyProperty.RegisterAttached(
+            "Keyword",
+            typeof(string),
+            typeof(TextBlockHelper),
+            new PropertyMetadata(null, OnHighlightChanged));
+
+    public static string GetHighlightText(DependencyObject obj) => (string)obj.GetValue(HighlightTextProperty);
+    public static void SetHighlightText(DependencyObject obj, string value) => obj.SetValue(HighlightTextProperty, value);
+
+    public static string GetKeyword(DependencyObject obj) => (string)obj.GetValue(KeywordProperty);
+    public static void SetKeyword(DependencyObject obj, string value) => obj.SetValue(KeywordProperty, value);
+
+    private static void OnHighlightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is TextBlock textBlock)
+        {
+            string text = GetHighlightText(textBlock) ?? "";
+            string keyword = GetKeyword(textBlock) ?? "";
+
+            textBlock.Inlines.Clear();
+
+            if (string.IsNullOrEmpty(text)) return;
+
+            if (string.IsNullOrEmpty(keyword))
+            {
+                textBlock.Inlines.Add(new System.Windows.Documents.Run(text));
+                return;
+            }
+
+            string normText = text.Normalize(System.Text.NormalizationForm.FormC);
+            string normKeyword = keyword.Normalize(System.Text.NormalizationForm.FormC);
+
+            string cleanText = RemoveDiacritics(normText).ToLowerInvariant();
+            string cleanKeyword = RemoveDiacritics(normKeyword).ToLowerInvariant();
+
+            int lastIndex = 0;
+            int index = cleanText.IndexOf(cleanKeyword, StringComparison.Ordinal);
+
+            while (index != -1)
+            {
+                if (index > lastIndex)
+                {
+                    textBlock.Inlines.Add(new System.Windows.Documents.Run(text.Substring(lastIndex, index - lastIndex)));
+                }
+
+                string matchingSubstring = text.Substring(index, cleanKeyword.Length);
+                var highlightRun = new System.Windows.Documents.Run(matchingSubstring)
+                {
+                    Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#ffeb3b")),
+                    FontWeight = FontWeights.Bold
+                };
+                textBlock.Inlines.Add(highlightRun);
+
+                lastIndex = index + cleanKeyword.Length;
+                index = cleanText.IndexOf(cleanKeyword, lastIndex, StringComparison.Ordinal);
+            }
+
+            if (lastIndex < text.Length)
+            {
+                textBlock.Inlines.Add(new System.Windows.Documents.Run(text.Substring(lastIndex)));
+            }
+        }
+    }
+
+    private static string RemoveDiacritics(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        var normalizedString = text.Normalize(System.Text.NormalizationForm.FormD);
+        var stringBuilder = new System.Text.StringBuilder();
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != System.Globalization.UnicodeCategory.NonSpacingMark)
+            {
+                if (c == 'đ') stringBuilder.Append('d');
+                else if (c == 'Đ') stringBuilder.Append('D');
+                else stringBuilder.Append(c);
+            }
+        }
+
+        return stringBuilder.ToString().Normalize(System.Text.NormalizationForm.FormC);
     }
 }
