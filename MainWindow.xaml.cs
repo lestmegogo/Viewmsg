@@ -181,13 +181,61 @@ public partial class MainWindow : Window
 
         if (!string.IsNullOrWhiteSpace(keyword))
         {
-            emailsToFilter = emailsToFilter.Where(e =>
-                e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                (e.BodyText != null && e.BodyText.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-            );
+            int scopeIndex = CboSearchScope?.SelectedIndex ?? 0;
+            emailsToFilter = emailsToFilter.Where(e => {
+                switch (scopeIndex)
+                {
+                    case 1: // Subject only
+                        return e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                    case 2: // Sender only
+                        return e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                               e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                    case 3: // Recipient only
+                        return e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase);
+                    case 0: // All fields
+                    default:
+                        return e.Subject.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                               e.FromName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                               e.FromEmail.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                               e.To.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                               (e.BodyText != null && e.BodyText.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+                }
+            });
+        }
+
+        // Apply Date Filtering
+        if (CboDateFilter != null && CboDateFilter.SelectedIndex > 0)
+        {
+            emailsToFilter = emailsToFilter.Where(e => {
+                if (!e.Date.HasValue) return false;
+                var date = e.Date.Value.Date;
+                switch (CboDateFilter.SelectedIndex)
+                {
+                    case 1: // Today
+                        return date == DateTime.Today;
+                    case 2: // Yesterday
+                        return date == DateTime.Today.AddDays(-1);
+                    case 3: // This week
+                        int diff = (7 + (DateTime.Today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                        DateTime startOfWeek = DateTime.Today.AddDays(-1 * diff).Date;
+                        return date >= startOfWeek;
+                    case 4: // This month
+                        var startOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                        return date >= startOfMonth;
+                    case 5: // Last month
+                        var startOfLastMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-1);
+                        var startOfThisMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                        return date >= startOfLastMonth && date < startOfThisMonth;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // Apply Attachment Filtering
+        if (ChkHasAttachments != null && ChkHasAttachments.IsChecked == true)
+        {
+            emailsToFilter = emailsToFilter.Where(e => e.HasAttachments);
         }
 
         var filteredList = emailsToFilter.ToList();
@@ -284,7 +332,7 @@ public partial class MainWindow : Window
     }
 
 
-    private void LoadEmailDetails(EmailMessage email)
+    private async void LoadEmailDetails(EmailMessage email)
     {
         _currentEmail = email;
         GridPlaceholder.Visibility = Visibility.Collapsed;
@@ -336,40 +384,47 @@ public partial class MainWindow : Window
         // Nạp SMTP headers
         PopulateHeaders(email);
 
-        // Hiển thị WebBrowser an toàn
+        // Hiển thị WebView2 an toàn
         try
         {
-            SuppressScriptErrors(EmailWebBrowser, true);
-            if (!string.IsNullOrWhiteSpace(email.BodyHtml))
+            if (EmailWebView.CoreWebView2 == null)
             {
-                string html = email.BodyHtml;
-                string cssStyle = "<style>body { padding: 20px !important; }</style>";
-                if (html.Contains("<head>", StringComparison.OrdinalIgnoreCase))
+                await EmailWebView.EnsureCoreWebView2Async(null);
+            }
+
+            if (EmailWebView.CoreWebView2 != null)
+            {
+                if (!string.IsNullOrWhiteSpace(email.BodyHtml))
                 {
-                    int headIndex = html.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
-                    html = html.Insert(headIndex + 6, cssStyle);
-                }
-                else if (html.Contains("<html>", StringComparison.OrdinalIgnoreCase))
-                {
-                    int htmlIndex = html.IndexOf("<html>", StringComparison.OrdinalIgnoreCase);
-                    html = html.Insert(htmlIndex + 6, "<head>" + cssStyle + "</head>");
+                    string html = email.BodyHtml;
+                    string cssStyle = "<style>body { padding: 20px !important; }</style>";
+                    if (html.Contains("<head>", StringComparison.OrdinalIgnoreCase))
+                    {
+                        int headIndex = html.IndexOf("<head>", StringComparison.OrdinalIgnoreCase);
+                        html = html.Insert(headIndex + 6, cssStyle);
+                    }
+                    else if (html.Contains("<html>", StringComparison.OrdinalIgnoreCase))
+                    {
+                        int htmlIndex = html.IndexOf("<html>", StringComparison.OrdinalIgnoreCase);
+                        html = html.Insert(htmlIndex + 6, "<head>" + cssStyle + "</head>");
+                    }
+                    else
+                    {
+                        html = cssStyle + html;
+                    }
+                    EmailWebView.NavigateToString(html);
                 }
                 else
                 {
-                    html = cssStyle + html;
+                    string plainTextEncoded = System.Net.WebUtility.HtmlEncode(email.BodyText ?? "");
+                    string simpleHtml = $"<html><body style='font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;white-space:pre-wrap;padding:20px;background-color:#ffffff;color:#1e293b;line-height:1.6;'>{plainTextEncoded}</body></html>";
+                    EmailWebView.NavigateToString(simpleHtml);
                 }
-                EmailWebBrowser.NavigateToString(html);
-            }
-            else
-            {
-                string plainTextEncoded = System.Net.WebUtility.HtmlEncode(email.BodyText ?? "");
-                string simpleHtml = $"<html><body style='font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;white-space:pre-wrap;padding:20px;background-color:#ffffff;color:#1e293b;line-height:1.6;'>{plainTextEncoded}</body></html>";
-                EmailWebBrowser.NavigateToString(simpleHtml);
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"WebBrowser navigation failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"WebView2 navigation failed: {ex.Message}");
         }
 
         if (email.RawXstMessage != null)
@@ -674,21 +729,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SuppressScriptErrors(WebBrowser browser, bool silent)
-    {
-        try
-        {
-            var activeX = browser.GetType().GetProperty("ActiveXInstance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(browser);
-            if (activeX != null)
-            {
-                activeX.GetType().InvokeMember("Silent", System.Reflection.BindingFlags.SetProperty, null, activeX, new object[] { silent });
-            }
-        }
-        catch
-        {
-            // Ignore reflection errors
-        }
-    }
+
 
     // ----- CÁC PHƯƠNG THỨC HỖ TRỢ ĐỌC FILE PST/OST & TÌM KIẾM -----
 
@@ -836,6 +877,36 @@ public partial class MainWindow : Window
     private void BtnClearSearch_Click(object sender, RoutedEventArgs e)
     {
         TxtSearch.Text = "";
+    }
+
+    private void BtnToggleFilters_Checked(object sender, RoutedEventArgs e)
+    {
+        if (PanelAdvancedFilters != null)
+        {
+            PanelAdvancedFilters.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void BtnToggleFilters_Unchecked(object sender, RoutedEventArgs e)
+    {
+        if (PanelAdvancedFilters != null)
+        {
+            PanelAdvancedFilters.Visibility = Visibility.Collapsed;
+            if (CboSearchScope != null) CboSearchScope.SelectedIndex = 0;
+            if (CboDateFilter != null) CboDateFilter.SelectedIndex = 0;
+            if (ChkHasAttachments != null) ChkHasAttachments.IsChecked = false;
+            UpdateEmailList();
+        }
+    }
+
+    private void FilterOption_Changed(object sender, RoutedEventArgs e)
+    {
+        UpdateEmailList();
+    }
+
+    private void FilterOption_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateEmailList();
     }
 
     protected override void OnClosed(EventArgs e)

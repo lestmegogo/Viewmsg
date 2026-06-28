@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MsgViewer"
+        xmlns:wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         mc:Ignorable="d"
         Title="Outlook Mail Viewer" Height="780" Width="1200"
         Background="#f3f4f6" Foreground="#1e293b"
@@ -94,6 +95,37 @@
                     <Setter Property="Foreground" Value="#0078d4" />
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <!-- Outline Toggle Button Style -->
+        <Style TargetType="ToggleButton" x:Key="OutlineToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#0078d4" />
+            <Setter Property="BorderBrush" Value="#cbd5e1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="BtnBorder" CornerRadius="4" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#eff6ff" />
+                                <Setter TargetName="BtnBorder" Property="BorderBrush" Value="#0078d4" />
+                                <Setter Property="Foreground" Value="#0078d4" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#f1f5f9" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Summarize Button Style -->
@@ -288,22 +320,73 @@
                 </Border>
 
                 <!-- Search Box Panel -->
-                <Border Grid.Row="2" Height="44" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
-                    <Grid>
-                        <Border Background="#f3f4f6" BorderThickness="1" BorderBrush="#e5e7eb" CornerRadius="4">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="🔍" Grid.Column="0" Foreground="#94a3b8" FontSize="11" Margin="8,0,4,0" VerticalAlignment="Center" />
-                                <TextBox x:Name="TxtSearch" Grid.Column="1" Background="Transparent" BorderThickness="0" Padding="2,4" VerticalAlignment="Center" FontSize="12" Foreground="#334155" TextChanged="TxtSearch_TextChanged" GotFocus="TxtSearch_GotFocus" LostFocus="TxtSearch_LostFocus" CaretBrush="#0078d4"/>
-                                <TextBlock x:Name="TxtSearchPlaceholder" Grid.Column="1" Text="Tìm kiếm email..." Foreground="#94a3b8" FontSize="12" IsHitTestVisible="False" VerticalAlignment="Center" Margin="5,0,0,0"/>
-                                <Button x:Name="BtnClearSearch" Grid.Column="2" Content="✕" Foreground="#94a3b8" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed" Click="BtnClearSearch_Click" Width="18" Height="18" Padding="0" FontSize="10"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
+                <Border Grid.Row="2" Height="Auto" BorderBrush="#f1f5f9" BorderThickness="0,0,0,1" Padding="8,6">
+                    <StackPanel>
+                        <!-- Main Search Row -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Search Input -->
+                            <Border Background="#f3f4f6" BorderThickness="1" BorderBrush="#e5e7eb" CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="🔍" Grid.Column="0" Foreground="#94a3b8" FontSize="11" Margin="8,0,4,0" VerticalAlignment="Center" />
+                                    <TextBox x:Name="TxtSearch" Grid.Column="1" Background="Transparent" BorderThickness="0" Padding="2,4" VerticalAlignment="Center" FontSize="12" Foreground="#334155" TextChanged="TxtSearch_TextChanged" GotFocus="TxtSearch_GotFocus" LostFocus="TxtSearch_LostFocus" CaretBrush="#0078d4"/>
+                                    <TextBlock x:Name="TxtSearchPlaceholder" Grid.Column="1" Text="Tìm kiếm email..." Foreground="#94a3b8" FontSize="12" IsHitTestVisible="False" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                    <Button x:Name="BtnClearSearch" Grid.Column="2" Content="✕" Foreground="#94a3b8" Background="Transparent" BorderThickness="0" Cursor="Hand" Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed" Click="BtnClearSearch_Click" Width="18" Height="18" Padding="0" FontSize="10"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Advanced Filter Toggle Button -->
+                            <ToggleButton Grid.Column="1" x:Name="BtnToggleFilters" Content="⚙️ Bộ lọc" Style="{StaticResource OutlineToggleButton}" Margin="6,0,0,0" Checked="BtnToggleFilters_Checked" Unchecked="BtnToggleFilters_Unchecked"/>
+                        </Grid>
+
+                        <!-- Advanced Filters Panel (Collapsible) -->
+                        <Grid x:Name="PanelAdvancedFilters" Visibility="Collapsed" Margin="0,6,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Scope ComboBox -->
+                            <StackPanel Margin="0,0,4,0">
+                                <TextBlock Text="Tìm kiếm theo" FontSize="10" Foreground="#64748b" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="CboSearchScope" SelectedIndex="0" FontSize="11" Height="24" SelectionChanged="FilterOption_SelectionChanged">
+                                    <ComboBoxItem Content="Tất cả các trường" />
+                                    <ComboBoxItem Content="Tiêu đề thư" />
+                                    <ComboBoxItem Content="Người gửi" />
+                                    <ComboBoxItem Content="Người nhận" />
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Date Filter ComboBox -->
+                            <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                <TextBlock Text="Thời gian" FontSize="10" Foreground="#64748b" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="CboDateFilter" SelectedIndex="0" FontSize="11" Height="24" SelectionChanged="FilterOption_SelectionChanged">
+                                    <ComboBoxItem Content="Tất cả thời gian" />
+                                    <ComboBoxItem Content="Hôm nay" />
+                                    <ComboBoxItem Content="Hôm qua" />
+                                    <ComboBoxItem Content="Tuần này" />
+                                    <ComboBoxItem Content="Tháng này" />
+                                    <ComboBoxItem Content="Tháng trước" />
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- CheckBox for Attachments -->
+                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" x:Name="ChkHasAttachments" Content="Chỉ hiện email có tệp đính kèm 📎" FontSize="11" Margin="0,8,0,0" VerticalAlignment="Center" Checked="FilterOption_Changed" Unchecked="FilterOption_Changed"/>
+                        </Grid>
+                    </StackPanel>
                 </Border>
 
                 <!-- Email ListBox -->
@@ -466,7 +549,7 @@
                     <!-- HTML Render Tab -->
                     <TabItem Header="Xem giao diện (HTML)">
                         <Grid>
-                            <WebBrowser x:Name="EmailWebBrowser" />
+                            <wpf:WebView2 x:Name="EmailWebView" />
                         </Grid>
                     </TabItem>
 
