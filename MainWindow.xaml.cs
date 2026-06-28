@@ -74,7 +74,6 @@ public partial class MainWindow : Window
     private bool _showUnreadOnlyTab = false;
     private EmailMessage? _currentEmail;
     private Dictionary<string, XstFile> _activePstFiles = new();
-    private PstFolderNode? _o365AccountNode;
     private string _currentSearchText = "";
     private System.Windows.Threading.DispatcherTimer? _o365NewMailTimer;
     private string? _activeFolderId;
@@ -220,11 +219,7 @@ public partial class MainWindow : Window
     {
         var rootNodes = new List<PstFolderNode>();
 
-        // 1. Add Office 365 Account root node if signed in or if we have folders loaded
-        if (_o365AccountNode != null)
-        {
-            rootNodes.Add(_o365AccountNode);
-        }
+
 
         // 2. Add each active PST file root node
         foreach (var kvp in _activePstFiles)
@@ -544,7 +539,7 @@ public partial class MainWindow : Window
                     UpdateEmailList();
                 }
 
-                if (_activePstFiles.Count == 0 && _o365AccountNode == null)
+                if (_activePstFiles.Count == 0)
                 {
                     ColFolderTree.Width = new GridLength(0);
                     ColFolderTree.MinWidth = 0;
@@ -771,7 +766,10 @@ public partial class MainWindow : Window
             }
 
             // Navigate to Outlook Web
-            OutlookWebView.CoreWebView2.Navigate("https://outlook.office.com/mail/");
+            if (OutlookWebView.CoreWebView2 != null)
+            {
+                OutlookWebView.CoreWebView2.Navigate("https://outlook.office.com/mail/");
+            }
 
             // Show and select Outlook Web tab
             if (RadOutlookWeb != null)
@@ -1046,7 +1044,7 @@ public partial class MainWindow : Window
         _inlineDraftId = null;
     }
 
-    private async void InlineDraftTimer_Tick(object sender, EventArgs e)
+    private async void InlineDraftTimer_Tick(object? sender, EventArgs e)
     {
         if (BdrInlineEditor.Visibility != Visibility.Visible || _currentEmail == null) return;
 
@@ -3163,7 +3161,7 @@ public partial class MainWindow : Window
         notifyWin.Show();
     }
 
-    private static bool IsMatch(string target, string keyword)
+    private static bool IsMatch(string? target, string keyword)
     {
         if (string.IsNullOrEmpty(target)) return false;
         if (string.IsNullOrEmpty(keyword)) return false;
