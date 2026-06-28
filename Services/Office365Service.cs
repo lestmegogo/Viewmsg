@@ -70,6 +70,8 @@ namespace MsgViewer.Services
                 .WithRedirectUri("http://localhost")
                 .Build();
 
+            BindTokenCache(_pca.UserTokenCache);
+
             // Try to sign in silently
             var accounts = await _pca.GetAccountsAsync();
             if (accounts.Any())
@@ -110,15 +112,32 @@ namespace MsgViewer.Services
 
         public static async Task SignOutAsync()
         {
-            if (_pca != null && _currentUserAccount != null)
+            if (_pca != null)
             {
-                await _pca.RemoveAsync(_currentUserAccount);
-                _currentUserAccount = null;
-                _graphClient = null;
-                UserDisplayName = null;
-                UserEmail = null;
-                UserAvatar = null;
+                var accounts = await _pca.GetAccountsAsync();
+                foreach (var account in accounts)
+                {
+                    try
+                    {
+                        await _pca.RemoveAsync(account);
+                    }
+                    catch {}
+                }
             }
+            _currentUserAccount = null;
+            _graphClient = null;
+            UserDisplayName = null;
+            UserEmail = null;
+            UserAvatar = null;
+
+            try
+            {
+                if (File.Exists(CacheFilePath))
+                {
+                    File.Delete(CacheFilePath);
+                }
+            }
+            catch {}
         }
 
         private static void InitializeGraphClient(string accessToken)
@@ -362,6 +381,59 @@ namespace MsgViewer.Services
                 System.Diagnostics.Debug.WriteLine($"Failed to send email: {ex.Message}");
                 throw;
             }
+        }
+
+        private static readonly string CacheFilePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MsgViewer",
+            "msal_cache.dat");
+
+        private static readonly object CacheLock = new object();
+
+        private static void BindTokenCache(ITokenCache tokenCache)
+        {
+            tokenCache.SetBeforeAccess(args =>
+            {
+                lock (CacheLock)
+                {
+                    if (File.Exists(CacheFilePath))
+                    {
+                        try
+                        {
+                            args.TokenCache.DeserializeMsalV3(File.ReadAllBytes(CacheFilePath));
+                        }
+                        catch {}
+                    }
+                    else
+                    {
+                        try
+                        {
+                            args.TokenCache.DeserializeMsalV3(null);
+                        }
+                        catch {}
+                    }
+                }
+            });
+
+            tokenCache.SetAfterAccess(args =>
+            {
+                if (args.HasStateChanged)
+                {
+                    lock (CacheLock)
+                    {
+                        try
+                        {
+                            string dir = Path.GetDirectoryName(CacheFilePath)!;
+                            if (!Directory.Exists(dir))
+                            {
+                                Directory.CreateDirectory(dir);
+                            }
+                            File.WriteAllBytes(CacheFilePath, args.TokenCache.SerializeMsalV3());
+                        }
+                        catch {}
+                    }
+                }
+            });
         }
     }
 

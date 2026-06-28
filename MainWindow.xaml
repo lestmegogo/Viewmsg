@@ -273,6 +273,12 @@
                 
                 <!-- TreeView -->
                 <TreeView Grid.Row="1" x:Name="TreePstFolders" Background="Transparent" BorderThickness="0" Padding="4" SelectedItemChanged="TreePstFolders_SelectedItemChanged">
+                    <TreeView.ItemContainerStyle>
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                            <Setter Property="IsExpanded" Value="True" />
+                        </Style>
+                    </TreeView.ItemContainerStyle>
                     <TreeView.ItemTemplate>
                         <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
                             <StackPanel Orientation="Horizontal" Margin="0,3">

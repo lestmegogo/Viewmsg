@@ -27,6 +27,7 @@ public class PstFolderNode
     public List<PstFolderNode> SubFolders { get; } = new();
     public int UnreadCount { get; set; } = 0;
     public string UnreadDisplay => UnreadCount > 0 ? $" ({UnreadCount})" : "";
+    public bool IsSelected { get; set; } = false;
 }
 
 /// <summary>
@@ -213,6 +214,13 @@ public partial class MainWindow : Window
             
             TreePstFolders.ItemsSource = rootNodes;
             TxtStatus.Text = "Đã đồng bộ danh mục thư Office 365.";
+
+            var inboxNode = rootNodes.FirstOrDefault(n => n.Name.Contains("Inbox") || n.Name.Contains("Hộp thư đến"));
+            if (inboxNode != null)
+            {
+                inboxNode.IsSelected = true;
+                TreePstFolders_SelectedItemChanged(TreePstFolders, new RoutedPropertyChangedEventArgs<object>(inboxNode, inboxNode));
+            }
         }
         catch (Exception ex)
         {
