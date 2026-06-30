@@ -26,6 +26,26 @@ namespace MsgViewer.Services
                 using (var conn = new SqliteConnection($"Data Source={DbPath}"))
                 {
                     conn.Open();
+
+                    // Kiểm tra xem có dữ liệu cũ cần dọn dẹp không (nếu khóa FilePath có chứa '\\' hoặc '/')
+                    bool needsCleanup = false;
+                    try
+                    {
+                        using (var checkCmd = new SqliteCommand("SELECT COUNT(*) FROM Emails WHERE FilePath LIKE '%\\%' OR FilePath LIKE '%/%';", conn))
+                        {
+                            var count = (long)(checkCmd.ExecuteScalar() ?? 0L);
+                            if (count > 0) needsCleanup = true;
+                        }
+                    }
+                    catch { }
+
+                    if (needsCleanup)
+                    {
+                        using (var dropCmd = new SqliteCommand("DROP TABLE IF EXISTS Attachments; DROP TABLE IF EXISTS Emails;", conn))
+                        {
+                            dropCmd.ExecuteNonQuery();
+                        }
+                    }
                     
                     // Create Email table
                     string createEmailTable = @"
