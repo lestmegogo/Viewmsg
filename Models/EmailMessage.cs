@@ -142,8 +142,20 @@ public class EmailMessage : INotifyPropertyChanged
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(BodyText)) return "";
-            var text = BodyText.Replace("\r", " ").Replace("\n", " ").Trim();
+            string source = "";
+            if (!string.IsNullOrWhiteSpace(BodyText))
+            {
+                source = BodyText;
+            }
+            else if (!string.IsNullOrWhiteSpace(BodyHtml))
+            {
+                source = System.Text.RegularExpressions.Regex.Replace(BodyHtml, "<.*?>", string.Empty);
+                source = System.Net.WebUtility.HtmlDecode(source);
+            }
+
+            if (string.IsNullOrWhiteSpace(source)) return "";
+
+            var text = source.Replace("\r", " ").Replace("\n", " ").Trim();
             text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
             return text.Length > 85 ? text.Substring(0, 85) + "..." : text;
         }

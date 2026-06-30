@@ -73,6 +73,13 @@ public static class EmailParser
             }
         }
 
+        if (string.IsNullOrWhiteSpace(email.BodyText) && !string.IsNullOrWhiteSpace(email.BodyHtml))
+        {
+            var cleanText = System.Text.RegularExpressions.Regex.Replace(email.BodyHtml, "<.*?>", string.Empty);
+            cleanText = System.Net.WebUtility.HtmlDecode(cleanText);
+            email.BodyText = cleanText;
+        }
+
         return email;
     }
 
@@ -100,6 +107,13 @@ public static class EmailParser
 
         email.BodyHtml = eml.HtmlBody?.GetBodyAsText();
         email.BodyText = eml.TextBody?.GetBodyAsText();
+
+        if (string.IsNullOrWhiteSpace(email.BodyText) && !string.IsNullOrWhiteSpace(email.BodyHtml))
+        {
+            var cleanText = System.Text.RegularExpressions.Regex.Replace(email.BodyHtml, "<.*?>", string.Empty);
+            cleanText = System.Net.WebUtility.HtmlDecode(cleanText);
+            email.BodyText = cleanText;
+        }
 
         foreach (var att in eml.Attachments)
         {

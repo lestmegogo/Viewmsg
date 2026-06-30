@@ -119,6 +119,13 @@ public static class PstParser
             }
         }
 
+        if (string.IsNullOrWhiteSpace(bodyText) && !string.IsNullOrWhiteSpace(bodyHtml))
+        {
+            var cleanText = System.Text.RegularExpressions.Regex.Replace(bodyHtml, "<.*?>", string.Empty);
+            cleanText = System.Net.WebUtility.HtmlDecode(cleanText);
+            bodyText = cleanText;
+        }
+
         email.BodyHtml = bodyHtml;
         email.BodyText = bodyText;
 
