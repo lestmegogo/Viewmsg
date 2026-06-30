@@ -85,20 +85,23 @@ public static class PstParser
         }
         
         // Nếu vẫn là địa chỉ Exchange nội bộ (/O=...), tìm trong thuộc tính SMTP của người đại diện gửi
-        if (senderEmail != null && (senderEmail.StartsWith("/") || senderEmail.StartsWith("EX", StringComparison.OrdinalIgnoreCase)))
+        if (senderEmail != null)
         {
-            var smtpAddr = msg.Properties[PropertyCanonicalName.PidTagSentRepresentingSmtpAddress]?.Value?.ToString();
-            if (!string.IsNullOrWhiteSpace(smtpAddr))
+            if (senderEmail.StartsWith("/") || senderEmail.StartsWith("EX", StringComparison.OrdinalIgnoreCase))
             {
-                senderEmail = smtpAddr;
+                var smtpAddr = msg.Properties[PropertyCanonicalName.PidTagSentRepresentingSmtpAddress]?.Value?.ToString();
+                if (!string.IsNullOrWhiteSpace(smtpAddr))
+                {
+                    senderEmail = smtpAddr;
+                }
             }
         }
 
         if (string.IsNullOrWhiteSpace(senderEmail))
         {
             // Fallback: Tìm trong danh sách người gửi của Recipients
-            var senderRecip = msg.Recipients[RecipientType.Sender].FirstOrDefault() 
-                              ?? msg.Recipients[RecipientType.SentRepresenting].FirstOrDefault();
+            var senderRecip = msg.Recipients?[RecipientType.Sender]?.FirstOrDefault() 
+                              ?? msg.Recipients?[RecipientType.SentRepresenting]?.FirstOrDefault();
             senderEmail = senderRecip?.Address;
         }
         email.FromEmail = senderEmail ?? "";
