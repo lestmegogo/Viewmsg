@@ -952,7 +952,7 @@
                                     </StackPanel>
 
                                     <!-- Subject (Line 2) -->
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                    <TextBlock Grid.Row="1" Grid.Column="1"
                                                local:TextBlockHelper.HighlightText="{Binding Subject}"
                                                local:TextBlockHelper.Keyword="{Binding Path=SearchKeyword, RelativeSource={RelativeSource AncestorType=Window}}"
                                                FontSize="11.5" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
@@ -971,7 +971,7 @@
                                     </TextBlock>
 
                                     <!-- Snippet/Preview (Line 3) -->
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" 
+                                    <TextBlock Grid.Row="2" Grid.Column="1"
                                                local:TextBlockHelper.HighlightText="{Binding Snippet}"
                                                local:TextBlockHelper.Keyword="{Binding Path=SearchKeyword, RelativeSource={RelativeSource AncestorType=Window}}"
                                                Foreground="#64748b" FontSize="11" Margin="0,3,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
