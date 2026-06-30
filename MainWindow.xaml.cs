@@ -58,6 +58,13 @@ public class PstFolderNode : System.ComponentModel.INotifyPropertyChanged
     public string UnreadCountText => UnreadCount > 0 ? UnreadCount.ToString() : "";
     public bool IsSelected { get; set; } = false;
 
+    private bool _isExpanded = true;
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set { _isExpanded = value; OnPropertyChanged(nameof(IsExpanded)); }
+    }
+
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged(string propName)
     {
@@ -2101,10 +2108,47 @@ public partial class MainWindow : Window
         if (BtnDetailReplyAll != null) BtnDetailReplyAll.IsEnabled = canCompose;
         if (BtnDetailForward != null) BtnDetailForward.IsEnabled = canCompose;
 
-        // Nạp lazy body & attachments từ XstMessage nếu là thư trong PST
-        if (email.RawXstMessage != null)
+        // Nạp lazy body & attachments từ XstMessage nếu là thư trong PST (hỗ trợ đọc bất đồng bộ và tải lại từ SQLite Cache)
+        bool isPst = email.FilePath.Contains("||");
+        if (isPst)
         {
-            PstParser.LoadMessageDetails(email);
+            TxtStatus.Text = "Đang tải nội dung thư từ tệp PST...";
+            await Task.Run(() => {
+                try
+                {
+                    if (email.RawXstMessage == null)
+                    {
+                        PstFolderNode? activeNode = null;
+                        App.Current.Dispatcher.Invoke(() => {
+                            activeNode = TreePstFolders.SelectedItem as PstFolderNode;
+                        });
+
+                        if (activeNode != null && activeNode.Folder != null)
+                        {
+                            var messages = activeNode.Folder.Messages ?? activeNode.Folder.GetMessages();
+                            if (messages != null)
+                            {
+                                var matchedMsg = messages.FirstOrDefault(m => 
+                                    (activeNode.PstFilePath + "||" + (m.Path ?? "")) == email.FilePath);
+                                if (matchedMsg != null)
+                                {
+                                    email.RawXstMessage = matchedMsg;
+                                }
+                            }
+                        }
+                    }
+
+                    if (email.RawXstMessage != null)
+                    {
+                        PstParser.LoadMessageDetails(email);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to lazy load PST message details: {ex.Message}");
+                }
+            });
+            TxtStatus.Text = "Đã hiển thị thư trong PST.";
         }
         else if (email.FilePath.StartsWith("o365://"))
         {
@@ -2575,7 +2619,8 @@ public partial class MainWindow : Window
             Name = folder.DisplayName ?? "(Thư mục không tên)",
             Folder = folder,
             PstFilePath = pstFilePath,
-            UnreadCount = folder.ContentUnreadCount
+            UnreadCount = folder.ContentUnreadCount,
+            Id = pstFilePath + "||" + (folder.Path ?? Guid.NewGuid().ToString())
         };
 
         // Ánh xạ biểu tượng icon thư mục Outlook
@@ -2652,12 +2697,41 @@ public partial class MainWindow : Window
                         return;
                     }
 
-                    var messages = node.Folder.Messages ?? node.Folder.GetMessages();
-                    if (messages != null)
+                    // 1. Try to load from SQLite cache first for instant response
+                    var cached = OfflineCacheService.LoadEmails(node.Id);
+                    if (cached != null && cached.Count > 0)
                     {
-                        foreach (var msg in messages)
+                        _allEmails.AddRange(cached);
+                    }
+                    else
+                    {
+                        // 2. Cache is empty, load from PST file in background
+                        TxtStatus.Text = $"Đang đọc dữ liệu từ tệp PST: {node.Name}...";
+                        var messagesList = await Task.Run(() =>
                         {
-                            _allEmails.Add(PstParser.MapMessageSummary(msg, node.PstFilePath));
+                            var list = new List<EmailMessage>();
+                            try
+                            {
+                                var messages = node.Folder.Messages ?? node.Folder.GetMessages();
+                                if (messages != null)
+                                {
+                                    foreach (var msg in messages)
+                                    {
+                                        list.Add(PstParser.MapMessageSummary(msg, node.PstFilePath));
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Failed to load emails from PST folder: {ex.Message}");
+                            }
+                            return list;
+                        });
+
+                        if (messagesList.Count > 0)
+                        {
+                            OfflineCacheService.SaveEmails(messagesList, node.Id);
+                            _allEmails.AddRange(messagesList);
                         }
                     }
                 }
