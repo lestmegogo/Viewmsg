@@ -138,10 +138,13 @@ public class EmailMessage : INotifyPropertyChanged
 
     public string DateDisplay => Date?.ToString("dddd, dd/MM/yyyy HH:mm") ?? "";
 
+    private string _snippet = "";
     public string Snippet
     {
         get
         {
+            if (!string.IsNullOrWhiteSpace(_snippet)) return _snippet;
+
             string source = "";
             if (!string.IsNullOrWhiteSpace(BodyText))
             {
@@ -158,6 +161,11 @@ public class EmailMessage : INotifyPropertyChanged
             var text = source.Replace("\r", " ").Replace("\n", " ").Trim();
             text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
             return text.Length > 85 ? text.Substring(0, 85) + "..." : text;
+        }
+        set
+        {
+            _snippet = value;
+            OnPropertyChanged();
         }
     }
 

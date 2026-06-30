@@ -39,7 +39,28 @@ namespace MsgViewer.Services
                     }
                     catch { }
 
-                    if (needsCleanup)
+                    // Kiểm tra xem có cột Snippet trong bảng Emails chưa
+                    bool hasSnippetColumn = false;
+                    try
+                    {
+                        using (var pragmaCmd = new SqliteCommand("PRAGMA table_info(Emails);", conn))
+                        {
+                            using (var reader = pragmaCmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    if (reader.GetString(1).Equals("Snippet", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        hasSnippetColumn = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
+                    if (needsCleanup || !hasSnippetColumn)
                     {
                         using (var dropCmd = new SqliteCommand("DROP TABLE IF EXISTS Attachments; DROP TABLE IF EXISTS Emails;", conn))
                         {
@@ -60,7 +81,8 @@ namespace MsgViewer.Services
                             IsRead INTEGER,
                             BodyHtml TEXT,
                             BodyText TEXT,
-                            FolderId TEXT
+                            FolderId TEXT,
+                            Snippet TEXT
                         );";
                     using (var cmd = new SqliteCommand(createEmailTable, conn))
                     {
@@ -100,8 +122,8 @@ namespace MsgViewer.Services
                         foreach (var email in emails)
                         {
                             string insertEmail = @"
-                                INSERT OR REPLACE INTO Emails (FilePath, Subject, FromName, FromEmail, [To], Cc, Date, IsRead, BodyHtml, BodyText, FolderId)
-                                VALUES ($path, $subject, $fromName, $fromEmail, $to, $cc, $date, $isRead, $bodyHtml, $bodyText, $folderId);";
+                                INSERT OR REPLACE INTO Emails (FilePath, Subject, FromName, FromEmail, [To], Cc, Date, IsRead, BodyHtml, BodyText, FolderId, Snippet)
+                                VALUES ($path, $subject, $fromName, $fromEmail, $to, $cc, $date, $isRead, $bodyHtml, $bodyText, $folderId, $snippet);";
                             
                             using (var cmd = new SqliteCommand(insertEmail, conn, transaction))
                             {
@@ -116,6 +138,7 @@ namespace MsgViewer.Services
                                 cmd.Parameters.AddWithValue("$bodyHtml", email.BodyHtml ?? "");
                                 cmd.Parameters.AddWithValue("$bodyText", email.BodyText ?? "");
                                 cmd.Parameters.AddWithValue("$folderId", folderId);
+                                cmd.Parameters.AddWithValue("$snippet", email.Snippet ?? "");
                                 cmd.ExecuteNonQuery();
                             }
 
@@ -161,7 +184,7 @@ namespace MsgViewer.Services
                 using (var conn = new SqliteConnection($"Data Source={DbPath}"))
                 {
                     conn.Open();
-                    string query = "SELECT FilePath, Subject, FromName, FromEmail, [To], Cc, Date, IsRead, BodyHtml, BodyText FROM Emails WHERE FolderId = $folderId;";
+                    string query = "SELECT FilePath, Subject, FromName, FromEmail, [To], Cc, Date, IsRead, BodyHtml, BodyText, Snippet FROM Emails WHERE FolderId = $folderId;";
                     using (var cmd = new SqliteCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("$folderId", folderId);
@@ -179,6 +202,7 @@ namespace MsgViewer.Services
                                 bool isRead = reader.GetInt32(7) == 1;
                                 string bodyHtml = reader.IsDBNull(8) ? "" : reader.GetString(8);
                                 string bodyText = reader.IsDBNull(9) ? "" : reader.GetString(9);
+                                string snippet = reader.IsDBNull(10) ? "" : reader.GetString(10);
 
                                 DateTime? date = null;
                                 if (DateTime.TryParse(dateStr, out var d)) date = d;
@@ -194,7 +218,8 @@ namespace MsgViewer.Services
                                     Date = date,
                                     IsRead = isRead,
                                     BodyHtml = bodyHtml,
-                                    BodyText = bodyText
+                                    BodyText = bodyText,
+                                    Snippet = snippet
                                 };
 
                                 // Load attachments from DB

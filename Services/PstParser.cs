@@ -31,21 +31,37 @@ public static class PstParser
 
     public static EmailMessage MapMessageSummary(XstMessage msg, string pstFilePath)
     {
-        string? snippet = null;
+        string? snippetText = null;
         try
         {
             var bodyProp = msg.Properties[PropertyCanonicalName.PidTagBody]?.Value?.ToString();
             if (!string.IsNullOrWhiteSpace(bodyProp))
             {
-                snippet = bodyProp;
+                snippetText = bodyProp;
             }
             else
             {
                 var bodyObj = msg.Body ?? msg.GetBody();
                 if (bodyObj != null && !string.IsNullOrWhiteSpace(bodyObj.Text))
                 {
-                    snippet = bodyObj.Text;
+                    if (bodyObj.Format == XstMessageBodyFormat.Html)
+                    {
+                        var cleanText = System.Text.RegularExpressions.Regex.Replace(bodyObj.Text, "<.*?>", string.Empty);
+                        cleanText = System.Net.WebUtility.HtmlDecode(cleanText);
+                        snippetText = cleanText;
+                    }
+                    else
+                    {
+                        snippetText = bodyObj.Text;
+                    }
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(snippetText))
+            {
+                var text = snippetText.Replace("\r", " ").Replace("\n", " ").Trim();
+                text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+                snippetText = text.Length > 85 ? text.Substring(0, 85) + "..." : text;
             }
         }
         catch { }
@@ -56,7 +72,7 @@ public static class PstParser
             Subject = string.IsNullOrWhiteSpace(msg.Subject) ? "(Không có tiêu đề)" : msg.Subject,
             Date = msg.Date ?? msg.ReceivedTime ?? msg.SubmittedTime,
             IsRead = msg.IsRead,
-            BodyText = snippet
+            Snippet = snippetText ?? ""
         };
 
         email.FromName = msg.From ?? "";
