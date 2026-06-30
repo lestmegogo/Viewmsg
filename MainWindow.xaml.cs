@@ -2193,7 +2193,7 @@ public partial class MainWindow : Window
         bool isPst = email.FilePath.Contains("||");
         if (isPst)
         {
-            // Chỉ đọc từ ổ đĩa nếu chưa có sẵn nội dung trong bộ nhớ đệm
+            // Luôn tải nội dung từ PST nếu chưa có body HTML/Text
             if (string.IsNullOrEmpty(email.BodyHtml) && string.IsNullOrEmpty(email.BodyText))
             {
                 TxtStatus.Text = "Đang tải nội dung thư từ tệp PST...";
@@ -2213,11 +2213,30 @@ public partial class MainWindow : Window
                                 var messages = activeNode.Folder.Messages ?? activeNode.Folder.GetMessages();
                                 if (messages != null)
                                 {
+                                    // Chiến lược 1: Khớp chính xác bằng key hash
                                     var matchedMsg = messages.FirstOrDefault(m => 
                                         (activeNode.PstFilePath + "||" + PstParser.GetMessageKey(m)) == email.FilePath);
+                                    
+                                    // Chiến lược 2 (Fallback): Khớp bằng Subject + Date (luôn hoạt động bất kể định dạng key)
+                                    if (matchedMsg == null)
+                                    {
+                                        matchedMsg = messages.FirstOrDefault(m =>
+                                            m.Subject == email.Subject &&
+                                            (m.Date ?? m.ReceivedTime ?? m.SubmittedTime) == email.Date);
+                                    }
+
+                                    // Chiến lược 3 (Fallback cuối): Khớp bằng Subject (nếu Date cũng khác do format)
+                                    if (matchedMsg == null)
+                                    {
+                                        matchedMsg = messages.FirstOrDefault(m =>
+                                            m.Subject == email.Subject);
+                                    }
+
                                     if (matchedMsg != null)
                                     {
                                         email.RawXstMessage = matchedMsg;
+                                        // Cập nhật lại FilePath sử dụng key mới (hash) để các lần sau khớp nhanh hơn
+                                        email.FilePath = activeNode.PstFilePath + "||" + PstParser.GetMessageKey(matchedMsg);
                                     }
                                 }
                             }
@@ -2794,16 +2813,39 @@ public partial class MainWindow : Window
                     {
                         _allEmails.AddRange(cached);
 
-                        // Prefetch from PST file in background to populate in-memory messages list
+                        // Liên kết RawXstMessage cho các email từ cache để lazy-load body hoạt động chính xác
                         _ = Task.Run(() =>
                         {
                             try
                             {
                                 var messages = node.Folder.Messages ?? node.Folder.GetMessages();
+                                if (messages != null)
+                                {
+                                    var msgList = messages.ToList();
+                                    foreach (var email in cached)
+                                    {
+                                        // Khớp bằng key hash
+                                        var matched = msgList.FirstOrDefault(m =>
+                                            (node.PstFilePath + "||" + PstParser.GetMessageKey(m)) == email.FilePath);
+                                        
+                                        // Fallback: khớp bằng Subject + Date
+                                        if (matched == null)
+                                        {
+                                            matched = msgList.FirstOrDefault(m =>
+                                                m.Subject == email.Subject &&
+                                                (m.Date ?? m.ReceivedTime ?? m.SubmittedTime) == email.Date);
+                                        }
+
+                                        if (matched != null)
+                                        {
+                                            email.RawXstMessage = matched;
+                                        }
+                                    }
+                                }
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Background prefetch failed: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"Background RawXstMessage linking failed: {ex.Message}");
                             }
                         });
                     }
