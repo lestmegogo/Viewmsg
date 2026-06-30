@@ -645,6 +645,7 @@
                     <ListView x:Name="LstEmails" 
                               Background="#ffffff" 
                               BorderThickness="0" 
+                              HorizontalContentAlignment="Stretch"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.IsVirtualizingWhenGrouping="True"
                               VirtualizingPanel.VirtualizationMode="Recycling"
@@ -684,7 +685,7 @@
                             </GridView>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
+                            <Style TargetType="ListViewItem">
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderBrush" Value="Transparent"/>
                                 <Setter Property="BorderThickness" Value="0"/>
@@ -692,7 +693,7 @@
                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
-                                        <ControlTemplate TargetType="ListBoxItem">
+                                        <ControlTemplate TargetType="ListViewItem">
                                             <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="#e5e7eb" BorderThickness="0,0,0,1" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
                                                 <Grid>
                                                     <Border x:Name="SelectionBar" Width="3.5" Background="#0078d4" HorizontalAlignment="Left" Margin="-12,-10,0,-10" Visibility="Collapsed" CornerRadius="0"/>
@@ -765,7 +766,7 @@
                                                         <Trigger Property="IsChecked" Value="True">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </Trigger>
-                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -805,7 +806,7 @@
                                                         <Setter Property="Foreground" Value="#0078d4" />
                                                         <Setter Property="FontWeight" Value="SemiBold" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -819,7 +820,7 @@
                                             <Style TargetType="StackPanel">
                                                 <Setter Property="Visibility" Value="Collapsed" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
                                                         <Setter Property="Visibility" Value="Visible" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -857,7 +858,7 @@
                                                     <DataTrigger Binding="{Binding HasAttachments}" Value="True">
                                                         <Setter Property="Visibility" Value="Visible" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
                                                         <Setter Property="Visibility" Value="Collapsed" />
                                                     </DataTrigger>
                                                 </Style.Triggers>

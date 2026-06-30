@@ -79,6 +79,7 @@ public partial class MainWindow : Window
 {
     private List<EmailMessage> _allEmails = new();
     private DataTemplate? _compactItemTemplate;
+    private Style? _compactItemContainerStyle;
     private GridView? _emailGridView;
     private bool _showUnreadOnlyTab = false;
     private EmailMessage? _currentEmail;
@@ -2122,6 +2123,7 @@ public partial class MainWindow : Window
     private void LstEmails_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         if (_compactItemTemplate == null) _compactItemTemplate = LstEmails.ItemTemplate;
+        if (_compactItemContainerStyle == null) _compactItemContainerStyle = LstEmails.ItemContainerStyle;
         if (_emailGridView == null) _emailGridView = LstEmails.TryFindResource("EmailGridView") as GridView;
 
         // Nếu chiều rộng danh sách thư lớn hơn 500px, đổi sang dạng bảng biểu (Table View) giống Outlook
@@ -2130,6 +2132,7 @@ public partial class MainWindow : Window
             if (LstEmails.View == null && _emailGridView != null)
             {
                 LstEmails.ItemTemplate = null;
+                LstEmails.ItemContainerStyle = null; // Tắt custom template để GridViewRowPresenter hoạt động vẽ cột
                 LstEmails.View = _emailGridView;
             }
         }
@@ -2140,6 +2143,7 @@ public partial class MainWindow : Window
             {
                 LstEmails.View = null;
                 LstEmails.ItemTemplate = _compactItemTemplate;
+                LstEmails.ItemContainerStyle = _compactItemContainerStyle;
             }
         }
     }
