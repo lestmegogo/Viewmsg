@@ -15,12 +15,32 @@ public static class PstParser
 {
     public static EmailMessage MapMessageSummary(XstMessage msg, string pstFilePath)
     {
+        string? snippet = null;
+        try
+        {
+            var bodyProp = msg.Properties[PropertyCanonicalName.PidTagBody]?.Value?.ToString();
+            if (!string.IsNullOrWhiteSpace(bodyProp))
+            {
+                snippet = bodyProp;
+            }
+            else
+            {
+                var bodyObj = msg.Body ?? msg.GetBody();
+                if (bodyObj != null && !string.IsNullOrWhiteSpace(bodyObj.Text))
+                {
+                    snippet = bodyObj.Text;
+                }
+            }
+        }
+        catch { }
+
         var email = new EmailMessage
         {
             FilePath = pstFilePath + "||" + (msg.Path ?? Guid.NewGuid().ToString()),
             Subject = string.IsNullOrWhiteSpace(msg.Subject) ? "(Không có tiêu đề)" : msg.Subject,
             Date = msg.Date ?? msg.ReceivedTime ?? msg.SubmittedTime,
             IsRead = msg.IsRead,
+            BodyText = snippet
         };
 
         email.FromName = msg.From ?? "";
