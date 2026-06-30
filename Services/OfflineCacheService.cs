@@ -37,13 +37,13 @@ namespace MsgViewer.Services
                     }
                     catch { }
 
-                    if (currentVersion < 3)
+                    if (currentVersion < 4)
                     {
                         using (var dropCmd = new SqliteCommand("DROP TABLE IF EXISTS Attachments; DROP TABLE IF EXISTS Emails;", conn))
                         {
                             dropCmd.ExecuteNonQuery();
                         }
-                        using (var setVerCmd = new SqliteCommand("PRAGMA user_version = 3;", conn))
+                        using (var setVerCmd = new SqliteCommand("PRAGMA user_version = 4;", conn))
                         {
                             setVerCmd.ExecuteNonQuery();
                         }

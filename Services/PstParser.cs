@@ -77,8 +77,23 @@ public static class PstParser
 
         email.FromName = msg.From ?? "";
         
-        // Trích xuất Email người gửi từ thuộc tính MAPI (vì XstMessage.From thường chỉ chứa Tên hiển thị)
-        var senderEmail = msg.Properties[PropertyCanonicalName.PidTagSenderEmailAddress]?.Value?.ToString();
+        // Trích xuất Email người gửi từ thuộc tính MAPI (ưu tiên SMTP address trước để tránh EX/X500 address)
+        var senderEmail = msg.Properties[PropertyCanonicalName.PidTagSenderSmtpAddress]?.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(senderEmail))
+        {
+            senderEmail = msg.Properties[PropertyCanonicalName.PidTagSenderEmailAddress]?.Value?.ToString();
+        }
+        
+        // Nếu vẫn là địa chỉ Exchange nội bộ (/O=...), tìm trong thuộc tính SMTP của người đại diện gửi
+        if (senderEmail != null && (senderEmail.StartsWith("/") || senderEmail.StartsWith("EX", StringComparison.OrdinalIgnoreCase)))
+        {
+            var smtpAddr = msg.Properties[PropertyCanonicalName.PidTagSentRepresentingSmtpAddress]?.Value?.ToString();
+            if (!string.IsNullOrWhiteSpace(smtpAddr))
+            {
+                senderEmail = smtpAddr;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(senderEmail))
         {
             // Fallback: Tìm trong danh sách người gửi của Recipients
