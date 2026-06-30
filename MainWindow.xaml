@@ -761,7 +761,21 @@
                                                     <TextBlock Text="📎" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,6,0" FontSize="11" VerticalAlignment="Center"/>
                                                     <TextBlock Text="{Binding Subject}" Style="{StaticResource GridTextSubjectStyle}"/>
                                                 </StackPanel>
-                                                <TextBlock Grid.Column="1" Text="{Binding Snippet, StringFormat=' - \{0\}'}" Foreground="#64748b" TextTrimming="CharacterEllipsis" FontSize="11.5" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Snippet, StringFormat=' - \{0\}'}" Foreground="#64748b" TextTrimming="CharacterEllipsis" FontSize="11.5" VerticalAlignment="Center" Margin="4,0,0,0">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Snippet}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Snippet}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </Grid>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>

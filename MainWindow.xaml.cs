@@ -80,6 +80,7 @@ public partial class MainWindow : Window
     private List<EmailMessage> _allEmails = new();
     private DataTemplate? _compactItemTemplate;
     private Style? _compactItemContainerStyle;
+    private Style? _gridViewItemContainerStyle;
     private GridView? _emailGridView;
     private bool _showUnreadOnlyTab = false;
     private EmailMessage? _currentEmail;
@@ -2124,6 +2125,7 @@ public partial class MainWindow : Window
     {
         if (_compactItemTemplate == null) _compactItemTemplate = LstEmails.ItemTemplate;
         if (_compactItemContainerStyle == null) _compactItemContainerStyle = LstEmails.ItemContainerStyle;
+        if (_gridViewItemContainerStyle == null) _gridViewItemContainerStyle = LstEmails.TryFindResource("GridViewItemContainerStyle") as Style;
         if (_emailGridView == null) _emailGridView = LstEmails.TryFindResource("EmailGridView") as GridView;
 
         // Nếu chiều rộng danh sách thư lớn hơn 500px, đổi sang dạng bảng biểu (Table View) giống Outlook
@@ -2132,8 +2134,19 @@ public partial class MainWindow : Window
             if (LstEmails.View == null && _emailGridView != null)
             {
                 LstEmails.ItemTemplate = null;
-                LstEmails.ItemContainerStyle = null; // Tắt custom template để GridViewRowPresenter hoạt động vẽ cột
+                LstEmails.ItemContainerStyle = _gridViewItemContainerStyle; // Sử dụng Style dòng GridView chuyên biệt
                 LstEmails.View = _emailGridView;
+            }
+
+            // Tự động căn chỉnh chiều rộng cột Subject để chiếm trọn phần không gian còn lại của GridView
+            if (_emailGridView != null && _emailGridView.Columns.Count >= 3)
+            {
+                double otherColumnsWidth = _emailGridView.Columns[0].Width + _emailGridView.Columns[2].Width + 30; // 30px trừ hao cho scrollbar
+                double subjectWidth = e.NewSize.Width - otherColumnsWidth;
+                if (subjectWidth > 200)
+                {
+                    _emailGridView.Columns[1].Width = subjectWidth;
+                }
             }
         }
         else
