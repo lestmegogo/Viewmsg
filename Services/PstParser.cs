@@ -13,6 +13,22 @@ namespace MsgViewer.Services;
 /// </summary>
 public static class PstParser
 {
+    public static string GetMessageKey(XstMessage msg)
+    {
+        if (!string.IsNullOrWhiteSpace(msg.Path))
+            return msg.Path;
+
+        string datePart = msg.Date?.Ticks.ToString() ?? msg.ReceivedTime?.Ticks.ToString() ?? "nodate";
+        string subjectPart = msg.Subject ?? "";
+        string fromPart = msg.From ?? "";
+        string rawKey = $"{subjectPart}_{fromPart}_{datePart}";
+        using (var sha1 = System.Security.Cryptography.SHA1.Create())
+        {
+            byte[] hash = sha1.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawKey));
+            return "hash_" + BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+    }
+
     public static EmailMessage MapMessageSummary(XstMessage msg, string pstFilePath)
     {
         string? snippet = null;
@@ -36,7 +52,7 @@ public static class PstParser
 
         var email = new EmailMessage
         {
-            FilePath = pstFilePath + "||" + (msg.Path ?? Guid.NewGuid().ToString()),
+            FilePath = pstFilePath + "||" + GetMessageKey(msg),
             Subject = string.IsNullOrWhiteSpace(msg.Subject) ? "(Không có tiêu đề)" : msg.Subject,
             Date = msg.Date ?? msg.ReceivedTime ?? msg.SubmittedTime,
             IsRead = msg.IsRead,

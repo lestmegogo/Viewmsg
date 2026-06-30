@@ -2214,7 +2214,7 @@ public partial class MainWindow : Window
                                 if (messages != null)
                                 {
                                     var matchedMsg = messages.FirstOrDefault(m => 
-                                        (activeNode.PstFilePath + "||" + (m.Path ?? "")) == email.FilePath);
+                                        (activeNode.PstFilePath + "||" + PstParser.GetMessageKey(m)) == email.FilePath);
                                     if (matchedMsg != null)
                                     {
                                         email.RawXstMessage = matchedMsg;
