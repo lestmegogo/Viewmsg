@@ -467,6 +467,9 @@
                                         </Grid>
 
                                         <ControlTemplate.Triggers>
+                                            <Trigger Property="IsExpanded" Value="false">
+                                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
                                             <Trigger Property="HasItems" Value="false">
                                                 <Setter TargetName="Expander" Property="Visibility" Value="Collapsed"/>
                                             </Trigger>

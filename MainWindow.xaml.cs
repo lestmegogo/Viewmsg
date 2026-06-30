@@ -243,12 +243,49 @@ public partial class MainWindow : Window
             try
             {
                 var pstFile = kvp.Value;
-                var pstRootNode = CreateFolderNode(pstFile.RootFolder, kvp.Key);
-                pstRootNode.Name = Path.GetFileName(kvp.Key);
-                pstRootNode.Id = kvp.Key; // File path serves as ID
-                pstRootNode.IsOffice365 = false;
-                pstRootNode.Icon = "📦"; // Archive/PST data file icon
-                
+                var pstRootNode = new PstFolderNode
+                {
+                    Name = Path.GetFileName(kvp.Key),
+                    Id = kvp.Key, // File path serves as ID
+                    PstFilePath = kvp.Key,
+                    IsOffice365 = false,
+                    Icon = "📦", // Archive/PST data file icon
+                };
+
+                // Traverse the root folder and promote user folders
+                var rootFolder = pstFile.RootFolder;
+                if (rootFolder.Folders != null)
+                {
+                    foreach (var subFolder in rootFolder.Folders)
+                    {
+                        var nameLower = (subFolder.DisplayName ?? "").ToLower();
+                        if (nameLower.Contains("search root"))
+                        {
+                            // Skip the system search root folder
+                            continue;
+                        }
+
+                        if (nameLower.Contains("top of outlook data file") || 
+                            nameLower.Contains("top of personal folders") ||
+                            nameLower.Contains("ipm_subtree"))
+                        {
+                            // Add children of "Top of Outlook data file" directly to the PST root node
+                            if (subFolder.Folders != null)
+                            {
+                                foreach (var userFolder in subFolder.Folders)
+                                {
+                                    pstRootNode.SubFolders.Add(CreateFolderNode(userFolder, kvp.Key));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Add any other root folder
+                            pstRootNode.SubFolders.Add(CreateFolderNode(subFolder, kvp.Key));
+                        }
+                    }
+                }
+
                 rootNodes.Add(pstRootNode);
             }
             catch (Exception ex)
@@ -2112,42 +2149,52 @@ public partial class MainWindow : Window
         bool isPst = email.FilePath.Contains("||");
         if (isPst)
         {
-            TxtStatus.Text = "Đang tải nội dung thư từ tệp PST...";
-            await Task.Run(() => {
-                try
-                {
-                    if (email.RawXstMessage == null)
+            // Chỉ đọc từ ổ đĩa nếu chưa có sẵn nội dung trong bộ nhớ đệm
+            if (string.IsNullOrEmpty(email.BodyHtml) && string.IsNullOrEmpty(email.BodyText))
+            {
+                TxtStatus.Text = "Đang tải nội dung thư từ tệp PST...";
+                string folderId = _activeFolderId ?? "";
+                await Task.Run(() => {
+                    try
                     {
-                        PstFolderNode? activeNode = null;
-                        App.Current.Dispatcher.Invoke(() => {
-                            activeNode = TreePstFolders.SelectedItem as PstFolderNode;
-                        });
-
-                        if (activeNode != null && activeNode.Folder != null)
+                        if (email.RawXstMessage == null)
                         {
-                            var messages = activeNode.Folder.Messages ?? activeNode.Folder.GetMessages();
-                            if (messages != null)
+                            PstFolderNode? activeNode = null;
+                            App.Current.Dispatcher.Invoke(() => {
+                                activeNode = TreePstFolders.SelectedItem as PstFolderNode;
+                            });
+
+                            if (activeNode != null && activeNode.Folder != null)
                             {
-                                var matchedMsg = messages.FirstOrDefault(m => 
-                                    (activeNode.PstFilePath + "||" + (m.Path ?? "")) == email.FilePath);
-                                if (matchedMsg != null)
+                                var messages = activeNode.Folder.Messages ?? activeNode.Folder.GetMessages();
+                                if (messages != null)
                                 {
-                                    email.RawXstMessage = matchedMsg;
+                                    var matchedMsg = messages.FirstOrDefault(m => 
+                                        (activeNode.PstFilePath + "||" + (m.Path ?? "")) == email.FilePath);
+                                    if (matchedMsg != null)
+                                    {
+                                        email.RawXstMessage = matchedMsg;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    if (email.RawXstMessage != null)
-                    {
-                        PstParser.LoadMessageDetails(email);
+                        if (email.RawXstMessage != null)
+                        {
+                            PstParser.LoadMessageDetails(email);
+                            // Lưu thông tin chi tiết (Body & Attachments) vào SQLite cache để tải tức thì lần sau
+                            if (!string.IsNullOrEmpty(folderId))
+                            {
+                                OfflineCacheService.SaveEmails(new List<EmailMessage> { email }, folderId);
+                            }
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Failed to lazy load PST message details: {ex.Message}");
-                }
-            });
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Failed to lazy load PST message details: {ex.Message}");
+                    }
+                });
+            }
             TxtStatus.Text = "Đã hiển thị thư trong PST.";
         }
         else if (email.FilePath.StartsWith("o365://"))
@@ -2702,6 +2749,19 @@ public partial class MainWindow : Window
                     if (cached != null && cached.Count > 0)
                     {
                         _allEmails.AddRange(cached);
+
+                        // Prefetch from PST file in background to populate in-memory messages list
+                        _ = Task.Run(() =>
+                        {
+                            try
+                            {
+                                var messages = node.Folder.Messages ?? node.Folder.GetMessages();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Background prefetch failed: {ex.Message}");
+                            }
+                        });
                     }
                     else
                     {
