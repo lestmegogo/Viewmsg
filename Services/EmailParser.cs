@@ -57,6 +57,8 @@ public static class EmailParser
         {
             if (att is OutlookStorage.Attachment a)
             {
+                if (a.IsInline) continue;
+
                 email.Attachments.Add(new EmailAttachment
                 {
                     FileName = Fallback(a.FileName, "attachment"),
@@ -101,6 +103,7 @@ public static class EmailParser
 
         foreach (var att in eml.Attachments)
         {
+            if (att.IsInline) continue;
             email.Attachments.Add(new EmailAttachment
             {
                 FileName = Fallback(att.FileName, "attachment"),

@@ -47,6 +47,7 @@ public static class PstParser
             {
                 if (att != null && !string.IsNullOrWhiteSpace(att.FileName))
                 {
+                    if (att.IsInlineAttachment || att.IsHidden) continue;
                     email.Attachments.Add(new EmailAttachment { FileName = att.FileName });
                 }
             }
@@ -107,6 +108,7 @@ public static class PstParser
         {
             foreach (var att in attachments)
             {
+                if (att.IsInlineAttachment || att.IsHidden) continue;
                 if (att.IsFile)
                 {
                     var emailAtt = new EmailAttachment

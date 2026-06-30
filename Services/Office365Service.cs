@@ -321,6 +321,7 @@ namespace MsgViewer.Services
                         {
                             foreach (var att in attachments.Value)
                             {
+                                if (att.IsInline == true) continue;
                                 if (att is FileAttachment fileAtt)
                                 {
                                     email.Attachments.Add(new EmailAttachment
