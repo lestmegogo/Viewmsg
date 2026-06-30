@@ -27,44 +27,25 @@ namespace MsgViewer.Services
                 {
                     conn.Open();
 
-                    // Kiểm tra xem có dữ liệu cũ cần dọn dẹp không (nếu khóa FilePath có chứa '\\' hoặc '/')
-                    bool needsCleanup = false;
+                    int currentVersion = 0;
                     try
                     {
-                        using (var checkCmd = new SqliteCommand("SELECT COUNT(*) FROM Emails WHERE FilePath LIKE '%\\%' OR FilePath LIKE '%/%';", conn))
+                        using (var verCmd = new SqliteCommand("PRAGMA user_version;", conn))
                         {
-                            var count = (long)(checkCmd.ExecuteScalar() ?? 0L);
-                            if (count > 0) needsCleanup = true;
+                            currentVersion = Convert.ToInt32(verCmd.ExecuteScalar() ?? 0);
                         }
                     }
                     catch { }
 
-                    // Kiểm tra xem có cột Snippet trong bảng Emails chưa
-                    bool hasSnippetColumn = false;
-                    try
-                    {
-                        using (var pragmaCmd = new SqliteCommand("PRAGMA table_info(Emails);", conn))
-                        {
-                            using (var reader = pragmaCmd.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    if (reader.GetString(1).Equals("Snippet", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        hasSnippetColumn = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    catch { }
-
-                    if (needsCleanup || !hasSnippetColumn)
+                    if (currentVersion < 3)
                     {
                         using (var dropCmd = new SqliteCommand("DROP TABLE IF EXISTS Attachments; DROP TABLE IF EXISTS Emails;", conn))
                         {
                             dropCmd.ExecuteNonQuery();
+                        }
+                        using (var setVerCmd = new SqliteCommand("PRAGMA user_version = 3;", conn))
+                        {
+                            setVerCmd.ExecuteNonQuery();
                         }
                     }
                     
