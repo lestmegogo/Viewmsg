@@ -642,16 +642,48 @@
 
                 <!-- Email ListBox -->
                 <Grid Grid.Row="2">
-                    <ListBox x:Name="LstEmails" 
-                             Background="#ffffff" 
-                             BorderThickness="0" 
-                             VirtualizingPanel.IsVirtualizing="True"
-                             VirtualizingPanel.IsVirtualizingWhenGrouping="True"
-                             VirtualizingPanel.VirtualizationMode="Recycling"
-                             ScrollViewer.CanContentScroll="True"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                             SelectionChanged="LstEmails_SelectionChanged">
-                        <ListBox.ItemContainerStyle>
+                    <ListView x:Name="LstEmails" 
+                              Background="#ffffff" 
+                              BorderThickness="0" 
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              ScrollViewer.CanContentScroll="True"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              SelectionChanged="LstEmails_SelectionChanged"
+                              SizeChanged="LstEmails_SizeChanged">
+                        <ListView.Resources>
+                            <!-- GridView definition for wide layout -->
+                            <GridView x:Key="EmailGridView">
+                                <GridViewColumn Header="Người gửi (From)" Width="220">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FromClean}" FontWeight="Bold" Foreground="#323130" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Tiêu đề (Subject)" Width="400">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="📎" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,6,0" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Subject}" Foreground="#323130" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
+                                                <TextBlock Text=" - " Foreground="#64748b" FontSize="11.5" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Snippet}" Foreground="#64748b" TextTrimming="CharacterEllipsis" FontSize="11.5" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Thời gian (Received)" Width="160">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DateDisplay}" Foreground="#64748b" VerticalAlignment="Center" FontSize="11.5"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.Resources>
+                        <ListView.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="BorderBrush" Value="Transparent"/>
@@ -683,8 +715,8 @@
                                     </Setter.Value>
                                 </Setter>
                             </Style>
-                        </ListBox.ItemContainerStyle>
-                        <ListBox.GroupStyle>
+                        </ListView.ItemContainerStyle>
+                        <ListView.GroupStyle>
                             <GroupStyle>
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
@@ -694,8 +726,8 @@
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
-                        </ListBox.GroupStyle>
-                        <ListBox.ItemTemplate>
+                        </ListView.GroupStyle>
+                        <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="0,0">
                                     <Grid.ContextMenu>
@@ -840,8 +872,8 @@
                                                Foreground="#64748b" FontSize="11" Margin="0,3,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
                             </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                        </ListView.ItemTemplate>
+                    </ListView>
 
                     <!-- Empty List Placeholder -->
                     <Border x:Name="BdrEmptyList" Background="#ffffff" Visibility="Visible" Padding="20">

@@ -78,6 +78,8 @@ public class PstFolderNode : System.ComponentModel.INotifyPropertyChanged
 public partial class MainWindow : Window
 {
     private List<EmailMessage> _allEmails = new();
+    private DataTemplate? _compactItemTemplate;
+    private GridView? _emailGridView;
     private bool _showUnreadOnlyTab = false;
     private EmailMessage? _currentEmail;
     private Dictionary<string, XstFile> _activePstFiles = new();
@@ -2114,6 +2116,31 @@ public partial class MainWindow : Window
         {
             GridPlaceholder.Visibility = Visibility.Visible;
             GridDetail.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void LstEmails_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_compactItemTemplate == null) _compactItemTemplate = LstEmails.ItemTemplate;
+        if (_emailGridView == null) _emailGridView = LstEmails.TryFindResource("EmailGridView") as GridView;
+
+        // Nếu chiều rộng danh sách thư lớn hơn 500px, đổi sang dạng bảng biểu (Table View) giống Outlook
+        if (e.NewSize.Width > 500)
+        {
+            if (LstEmails.View == null && _emailGridView != null)
+            {
+                LstEmails.ItemTemplate = null;
+                LstEmails.View = _emailGridView;
+            }
+        }
+        else
+        {
+            // Trở lại giao diện gọn nhẹ (Compact View)
+            if (LstEmails.View != null)
+            {
+                LstEmails.View = null;
+                LstEmails.ItemTemplate = _compactItemTemplate;
+            }
         }
     }
 
