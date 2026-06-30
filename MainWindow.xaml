@@ -651,31 +651,65 @@
                               VirtualizingPanel.VirtualizationMode="Recycling"
                               ScrollViewer.CanContentScroll="True"
                               ScrollViewer.VerticalScrollBarVisibility="Auto"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                               SelectionChanged="LstEmails_SelectionChanged"
                               SizeChanged="LstEmails_SizeChanged">
                         <ListView.Resources>
+                            <!-- styles for GridView cells -->
+                            <Style x:Key="GridTextFromStyle" TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#323130"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                <Setter Property="FontWeight" Value="Normal"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="Foreground" Value="#0078d4"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
+                            <Style x:Key="GridTextSubjectStyle" TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#323130"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                <Setter Property="FontWeight" Value="Normal"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+
                             <!-- GridView definition for wide layout -->
                             <GridView x:Key="EmailGridView">
-                                <GridViewColumn Header="Người gửi (From)" Width="220">
+                                <GridViewColumn Header="From" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding FromClean}" FontWeight="Bold" Foreground="#323130" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                            <TextBlock Text="{Binding FromClean}" Style="{StaticResource GridTextFromStyle}"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Tiêu đề (Subject)" Width="400">
+                                <GridViewColumn Header="Subject" Width="400">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <TextBlock Text="📎" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,6,0" FontSize="11" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Subject}" Foreground="#323130" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center"/>
-                                                <TextBlock Text=" - " Foreground="#64748b" FontSize="11.5" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Snippet}" Foreground="#64748b" TextTrimming="CharacterEllipsis" FontSize="11.5" VerticalAlignment="Center"/>
-                                            </StackPanel>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" MaxWidth="250"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="📎" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,6,0" FontSize="11" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding Subject}" Style="{StaticResource GridTextSubjectStyle}"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="1" Text="{Binding Snippet, StringFormat=' - \{0\}'}" Foreground="#64748b" TextTrimming="CharacterEllipsis" FontSize="11.5" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                            </Grid>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Thời gian (Received)" Width="160">
+                                <GridViewColumn Header="Received" Width="150">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding DateDisplay}" Foreground="#64748b" VerticalAlignment="Center" FontSize="11.5"/>
