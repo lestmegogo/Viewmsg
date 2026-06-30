@@ -90,32 +90,85 @@ public static class PstParser
         string? bodyHtml = null;
         string? bodyText = null;
 
-        var body = msg.Body ?? msg.GetBody();
-        if (body != null)
+        try
         {
-            if (body.Format == XstMessageBodyFormat.Html)
+            var body = msg.Body ?? msg.GetBody();
+            if (body != null)
             {
-                bodyHtml = body.Text;
+                if (body.Format == XstMessageBodyFormat.Html)
+                {
+                    bodyHtml = body.Text;
+                }
+                else if (body.Format == XstMessageBodyFormat.PlainText)
+                {
+                    bodyText = body.Text;
+                }
+                else if (body.Format == XstMessageBodyFormat.Rtf)
+                {
+                    var htmlProp = msg.Properties[PropertyCanonicalName.PidTagBodyHtml];
+                    if (htmlProp?.Value != null)
+                    {
+                        if (htmlProp.Value is byte[] htmlBytes)
+                        {
+                            var encoding = msg.Encoding ?? System.Text.Encoding.UTF8;
+                            bodyHtml = encoding.GetString(htmlBytes);
+                        }
+                        else
+                        {
+                            bodyHtml = htmlProp.Value.ToString();
+                        }
+                    }
+                    else
+                    {
+                        bodyText = body.Text;
+                    }
+                }
             }
-            else if (body.Format == XstMessageBodyFormat.PlainText)
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load standard PST body: {ex.Message}");
+        }
+
+        // Fallback cực mạnh nếu không đọc được body theo cách thông thường (đặc biệt khi giải nén RTF bị lỗi hoặc Encoding bị null)
+        if (string.IsNullOrWhiteSpace(bodyHtml) && string.IsNullOrWhiteSpace(bodyText))
+        {
+            try
             {
-                bodyText = body.Text;
-            }
-            else if (body.Format == XstMessageBodyFormat.Rtf)
-            {
-                // Thử đọc HTML thô từ thuộc tính MAPI đối với RTF có nhúng HTML
                 var htmlProp = msg.Properties[PropertyCanonicalName.PidTagBodyHtml];
                 if (htmlProp?.Value != null)
                 {
                     if (htmlProp.Value is byte[] htmlBytes)
-                        bodyHtml = msg.Encoding.GetString(htmlBytes);
+                    {
+                        var encoding = msg.Encoding ?? System.Text.Encoding.UTF8;
+                        bodyHtml = encoding.GetString(htmlBytes);
+                    }
                     else
+                    {
                         bodyHtml = htmlProp.Value.ToString();
+                    }
                 }
-                else
+
+                if (string.IsNullOrWhiteSpace(bodyHtml))
                 {
-                    bodyText = body.Text;
+                    var textProp = msg.Properties[PropertyCanonicalName.PidTagBody];
+                    if (textProp?.Value != null)
+                    {
+                        if (textProp.Value is byte[] textBytes)
+                        {
+                            var encoding = msg.Encoding ?? System.Text.Encoding.UTF8;
+                            bodyText = encoding.GetString(textBytes);
+                        }
+                        else
+                        {
+                            bodyText = textProp.Value.ToString();
+                        }
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to fallback load PST body properties: {ex.Message}");
             }
         }
 
