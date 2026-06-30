@@ -915,9 +915,9 @@
 
                             <!-- From, To, CC info -->
                             <StackPanel Grid.Column="1" VerticalAlignment="Top">
-                                <TextBox x:Name="TxtFrom" Text="Người gửi &lt;email@example.com&gt;" FontWeight="Bold" Foreground="#323130" FontSize="12.5" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" TextWrapping="Wrap" CaretBrush="Transparent"/>
-                                <TextBox x:Name="TxtTo" Text="To: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent"/>
-                                <TextBox x:Name="TxtCc" Text="Cc: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" IsReadOnly="True" Background="Transparent" BorderThickness="0" Padding="0" CaretBrush="Transparent" Visibility="Collapsed"/>
+                                <TextBlock x:Name="TxtFrom" Text="Người gửi &lt;email@example.com&gt;" FontWeight="Bold" Foreground="#323130" FontSize="12.5" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="TxtTo" Text="To: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="TxtCc" Text="Cc: N/A" Foreground="#64748b" FontSize="11.5" Margin="0,3,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
                             </StackPanel>
 
                             <!-- Date/Time & Small Quick Reply Bar -->
