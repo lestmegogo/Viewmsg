@@ -853,6 +853,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -861,7 +862,7 @@
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Multi-select Checkbox (Starts collapsed, appears on hover/checked) -->
-                                    <CheckBox x:Name="ChkSelectEmail" Grid.Column="0" Grid.RowSpan="3" VerticalAlignment="Center" Margin="0,0,10,0" IsChecked="{Binding IsSelected, Mode=TwoWay}" Checked="ChkSelectEmail_Checked" Unchecked="ChkSelectEmail_Unchecked" Tag="{Binding}">
+                                    <CheckBox x:Name="ChkSelectEmail" Grid.Column="0" Grid.RowSpan="4" VerticalAlignment="Center" Margin="0,0,10,0" IsChecked="{Binding IsSelected, Mode=TwoWay}" Checked="ChkSelectEmail_Checked" Unchecked="ChkSelectEmail_Unchecked" Tag="{Binding}">
                                         <CheckBox.Style>
                                             <Style TargetType="CheckBox">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -896,62 +897,10 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <!-- Date/Time & Attachment Icon (Line 1, Right) -->
-                                    <StackPanel Grid.Column="2" Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <StackPanel.Style>
-                                            <Style TargetType="StackPanel">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </StackPanel.Style>
-                                        <TextBlock Text="📎" Foreground="#64748b" FontSize="11" Margin="0,0,6,0" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasAttachments}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <TextBlock Text="{Binding DateDisplay}" FontSize="10.5" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="#64748b" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsRead}" Value="False">
-                                                            <Setter Property="Foreground" Value="#0078d4" />
-                                                            <Setter Property="FontWeight" Value="SemiBold" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
+                                    <!-- Attachment Icon (Line 1, Right) -->
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="📎" Foreground="#64748b" FontSize="11" Margin="8,0,0,0" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="{Binding HasAttachments, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                                    <!-- Hover Quick Actions Panel (Line 1, Right - On Hover) -->
-                                    <StackPanel Grid.RowSpan="3" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0">
-                                        <StackPanel.Style>
-                                            <Style TargetType="StackPanel">
-                                                <Setter Property="Visibility" Value="Collapsed" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </StackPanel.Style>
-                                        <Button Content="✉️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" Margin="0,0,4,0" ToolTip="Đánh dấu Đọc/Chưa đọc" Click="BtnQuickToggleRead_Click"/>
-                                        <Button Content="🗑️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" ToolTip="Xóa nhanh" Click="BtnQuickDelete_Click"/>
-                                    </StackPanel>
-
-                                    <!-- Subject (Line 2) -->
+                                    <!-- Subject (Line 2, Left) -->
                                     <TextBlock Grid.Row="1" Grid.Column="1"
                                                local:TextBlockHelper.HighlightText="{Binding Subject}"
                                                local:TextBlockHelper.Keyword="{Binding Path=SearchKeyword, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -970,11 +919,97 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
+                                    <!-- Date/Time (Line 2, Right) -->
+                                    <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding DateDisplay}" FontSize="10.5" Margin="8,3,0,0" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#64748b" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRead}" Value="False">
+                                                        <Setter Property="Foreground" Value="#0078d4" />
+                                                        <Setter Property="FontWeight" Value="SemiBold" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- Hover Quick Actions Panel (Line 2, Right - On Hover) -->
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,3,0,0">
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsMouseOver}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
+                                        <Button Content="✉️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" Margin="0,0,4,0" ToolTip="Đánh dấu Đọc/Chưa đọc" Click="BtnQuickToggleRead_Click"/>
+                                        <Button Content="🗑️" Style="{StaticResource ActionButton}" Padding="4" FontSize="10" ToolTip="Xóa nhanh" Click="BtnQuickDelete_Click"/>
+                                    </StackPanel>
+
                                     <!-- Snippet/Preview (Line 3) -->
-                                    <TextBlock Grid.Row="2" Grid.Column="1"
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                                local:TextBlockHelper.HighlightText="{Binding Snippet}"
                                                local:TextBlockHelper.Keyword="{Binding Path=SearchKeyword, RelativeSource={RelativeSource AncestorType=Window}}"
                                                Foreground="#64748b" FontSize="11" Margin="0,3,0,0" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+
+                                    <!-- Attachment Chips List (Line 4) -->
+                                    <ItemsControl Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Attachments}" Margin="0,5,0,0">
+                                        <ItemsControl.Style>
+                                            <Style TargetType="ItemsControl">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasAttachments}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ItemsControl.Style>
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" IsItemsHost="True"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#ffffff" BorderBrush="#e2e8f0" BorderThickness="1" CornerRadius="3" Padding="6,4" Margin="0,0,6,4">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock x:Name="TxtAttIcon" FontSize="11" Margin="0,0,4,0" VerticalAlignment="Center" Text="📎"/>
+                                                        <TextBlock Text="{Binding FileName}" Foreground="#475569" FontSize="10.5" MaxWidth="110" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <!-- Icon mapping based on file extension -->
+                                                    <DataTrigger Binding="{Binding FileTypeIcon}" Value="pdf">
+                                                        <Setter TargetName="TxtAttIcon" Property="Text" Value="📕"/>
+                                                        <Setter TargetName="TxtAttIcon" Property="Foreground" Value="#ef4444"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding FileTypeIcon}" Value="excel">
+                                                        <Setter TargetName="TxtAttIcon" Property="Text" Value="📗"/>
+                                                        <Setter TargetName="TxtAttIcon" Property="Foreground" Value="#22c55e"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding FileTypeIcon}" Value="word">
+                                                        <Setter TargetName="TxtAttIcon" Property="Text" Value="📘"/>
+                                                        <Setter TargetName="TxtAttIcon" Property="Foreground" Value="#3b82f6"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding FileTypeIcon}" Value="image">
+                                                        <Setter TargetName="TxtAttIcon" Property="Text" Value="🖼️"/>
+                                                        <Setter TargetName="TxtAttIcon" Property="Foreground" Value="#ec4899"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding FileTypeIcon}" Value="zip">
+                                                        <Setter TargetName="TxtAttIcon" Property="Text" Value="📦"/>
+                                                        <Setter TargetName="TxtAttIcon" Property="Foreground" Value="#eab308"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>

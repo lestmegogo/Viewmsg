@@ -40,6 +40,18 @@ public static class PstParser
         email.To = msg.To ?? "";
         email.Cc = msg.Cc ?? "";
 
+        // Ánh xạ danh sách tệp đính kèm sơ bộ (chỉ tên tệp để hiển thị chip đính kèm ở danh sách thư)
+        if (msg.Attachments != null)
+        {
+            foreach (var att in msg.Attachments)
+            {
+                if (att != null && !string.IsNullOrWhiteSpace(att.FileName))
+                {
+                    email.Attachments.Add(new EmailAttachment { FileName = att.FileName });
+                }
+            }
+        }
+
         // Lưu giữ liên kết đến đối tượng tin nhắn gốc phục vụ cho lazy load nội dung chi tiết
         email.RawXstMessage = msg;
 

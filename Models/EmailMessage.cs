@@ -92,6 +92,21 @@ public class EmailAttachment
     public byte[] Data { get; set; } = Array.Empty<byte>();
     public long Size => Data.LongLength;
 
+    public string FileTypeIcon
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(FileName)) return "generic";
+            var ext = System.IO.Path.GetExtension(FileName).ToLowerInvariant().TrimStart('.');
+            if (ext == "pdf") return "pdf";
+            if (ext == "xls" || ext == "xlsx" || ext == "csv") return "excel";
+            if (ext == "doc" || ext == "docx" || ext == "rtf") return "word";
+            if (ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "gif" || ext == "bmp") return "image";
+            if (ext == "zip" || ext == "rar" || ext == "7z" || ext == "tar" || ext == "gz") return "zip";
+            return "generic";
+        }
+    }
+
     public string SizeDisplay
     {
         get
