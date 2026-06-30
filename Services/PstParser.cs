@@ -115,9 +115,6 @@ public static class PstParser
     {
         if (email.RawXstMessage is not XstMessage msg) return;
 
-        // Clear đính kèm cũ trước khi nạp lại
-        email.Attachments.Clear();
-
         // 1. Nạp nội dung thư (Lazy Loading Body)
         string? bodyHtml = null;
         string? bodyText = null;
@@ -215,6 +212,7 @@ public static class PstParser
         email.BodyText = bodyText;
 
         // 2. Nạp danh sách tệp đính kèm (Lazy Loading Attachments)
+        var loadedAttachments = new List<EmailAttachment>();
         var attachments = msg.Attachments ?? msg.GetAttachments();
         if (attachments != null)
         {
@@ -242,7 +240,7 @@ public static class PstParser
                         emailAtt.Data = Array.Empty<byte>();
                     }
 
-                    email.Attachments.Add(emailAtt);
+                    loadedAttachments.Add(emailAtt);
                 }
                 else if (att.IsEmail && att.AttachedEmailMessage != null)
                 {
@@ -253,8 +251,29 @@ public static class PstParser
                         FileName = nestedSubject + ".msg",
                         Data = Array.Empty<byte>() // Đánh dấu không có dữ liệu nhị phân trực tiếp
                     };
-                    email.Attachments.Add(emailAtt);
+                    loadedAttachments.Add(emailAtt);
                 }
+            }
+        }
+
+        // Cập nhật ObservableCollection trên UI thread để tránh Thread Access Exception trong WPF
+        if (System.Windows.Application.Current != null)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                email.Attachments.Clear();
+                foreach (var att in loadedAttachments)
+                {
+                    email.Attachments.Add(att);
+                }
+            });
+        }
+        else
+        {
+            email.Attachments.Clear();
+            foreach (var att in loadedAttachments)
+            {
+                email.Attachments.Add(att);
             }
         }
     }
