@@ -5,17 +5,94 @@ namespace MsgViewer.Models;
 /// <summary>
 /// Mô hình email thống nhất cho cả file .msg và .eml.
 /// </summary>
-public class EmailMessage
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
+
+public class EmailMessage : INotifyPropertyChanged
 {
-    public string FilePath { get; set; } = "";
-    public string Subject { get; set; } = "(Không có tiêu đề)";
-    public string FromName { get; set; } = "";
-    public string FromEmail { get; set; } = "";
-    public string To { get; set; } = "";
-    public string Cc { get; set; } = "";
-    public DateTime? Date { get; set; }
-    public bool IsRead { get; set; } = true;
-    public bool IsSelected { get; set; } = false;
+    private string _filePath = "";
+    public string FilePath
+    {
+        get => _filePath;
+        set { _filePath = value; OnPropertyChanged(); }
+    }
+
+    private string _subject = "(Không có tiêu đề)";
+    public string Subject
+    {
+        get => _subject;
+        set { _subject = value; OnPropertyChanged(); }
+    }
+
+    private string _fromName = "";
+    public string FromName
+    {
+        get => _fromName;
+        set 
+        { 
+            _fromName = value; 
+            OnPropertyChanged(); 
+            OnPropertyChanged(nameof(FromDisplay)); 
+            OnPropertyChanged(nameof(FromClean)); 
+            OnPropertyChanged(nameof(SenderInitials)); 
+        }
+    }
+
+    private string _fromEmail = "";
+    public string FromEmail
+    {
+        get => _fromEmail;
+        set 
+        { 
+            _fromEmail = value; 
+            OnPropertyChanged(); 
+            OnPropertyChanged(nameof(FromDisplay)); 
+            OnPropertyChanged(nameof(FromClean)); 
+            OnPropertyChanged(nameof(SenderInitials)); 
+        }
+    }
+
+    private string _to = "";
+    public string To
+    {
+        get => _to;
+        set { _to = value; OnPropertyChanged(); }
+    }
+
+    private string _cc = "";
+    public string Cc
+    {
+        get => _cc;
+        set { _cc = value; OnPropertyChanged(); }
+    }
+
+    private DateTime? _date;
+    public DateTime? Date
+    {
+        get => _date;
+        set 
+        { 
+            _date = value; 
+            OnPropertyChanged(); 
+            OnPropertyChanged(nameof(DateGroup)); 
+            OnPropertyChanged(nameof(DateDisplay)); 
+        }
+    }
+
+    private bool _isRead = true;
+    public bool IsRead
+    {
+        get => _isRead;
+        set { _isRead = value; OnPropertyChanged(); }
+    }
+
+    private bool _isSelected = false;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; OnPropertyChanged(); }
+    }
 
     public string DateGroup
     {
@@ -31,15 +108,27 @@ public class EmailMessage
         }
     }
 
-    /// <summary>Nội dung HTML (ưu tiên). Có thể rỗng.</summary>
-    public string? BodyHtml { get; set; }
+    private string? _bodyHtml;
+    public string? BodyHtml
+    {
+        get => _bodyHtml;
+        set { _bodyHtml = value; OnPropertyChanged(); }
+    }
 
-    /// <summary>Nội dung text thuần (fallback khi không có HTML).</summary>
-    public string? BodyText { get; set; }
+    private string? _bodyText;
+    public string? BodyText
+    {
+        get => _bodyText;
+        set 
+        { 
+            _bodyText = value; 
+            OnPropertyChanged(); 
+            OnPropertyChanged(nameof(Snippet)); 
+        }
+    }
 
-    public List<EmailAttachment> Attachments { get; } = new();
+    public ObservableCollection<EmailAttachment> Attachments { get; } = new();
 
-    /// <summary>Tên người gửi hiển thị: "Tên &lt;email&gt;" hoặc chỉ email.</summary>
     public string FromDisplay =>
         string.IsNullOrWhiteSpace(FromName)
             ? FromEmail
@@ -81,8 +170,13 @@ public class EmailMessage
         }
     }
 
-    /// <summary>Đối tượng XstMessage gốc (chỉ dùng cho tệp PST/OST để nạp lazy).</summary>
     public object? RawXstMessage { get; set; }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
 
 
