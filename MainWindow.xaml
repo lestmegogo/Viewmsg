@@ -645,6 +645,10 @@
                     <ListBox x:Name="LstEmails" 
                              Background="#ffffff" 
                              BorderThickness="0" 
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.CanContentScroll="True"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              SelectionChanged="LstEmails_SelectionChanged">
                         <ListBox.ItemContainerStyle>
